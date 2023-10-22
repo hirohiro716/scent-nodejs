@@ -1,6 +1,7 @@
 {
     "name": "scent-nodejs",
     "version": "0.1.0",
+    "type": "module",
     "main": "dist/node.js",
     "types": "dist/node.d.ts",
     "scripts": {
