@@ -88,7 +88,7 @@ class CSV {
             const parse = (one) => {
                 switch (one) {
                     case this.delimiter:
-                        if (withinString == false || stringMaybeEnd) {
+                        if (withinString === false || stringMaybeEnd) {
                             row.push(value.toString());
                             value.set(null);
                             withinString = false;
@@ -100,7 +100,7 @@ class CSV {
                         break;
                     case "\n":
                     case "\r":
-                        if (withinString == false || stringMaybeEnd) {
+                        if (withinString === false || stringMaybeEnd) {
                             if (value.length() > 0 || row.length > 0) {
                                 row.push(value.toString());
                                 value.set(null);
@@ -120,7 +120,7 @@ class CSV {
                         }
                         break;
                     case '"':
-                        if (withinString == false) {
+                        if (withinString === false) {
                             withinString = true;
                         }
                         else {

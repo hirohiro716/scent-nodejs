@@ -11,7 +11,7 @@ export default class File extends FilesystemItem {
     constructor(parameter1, parameter2) {
         if (typeof parameter2 !== "undefined") {
             const path = new StringObject(parameter2.path);
-            if (path.toString().endsWith(FilesystemItem.getFileSeparator()) == false) {
+            if (path.toString().endsWith(FilesystemItem.getFileSeparator()) === false) {
                 path.append(FilesystemItem.getFileSeparator());
             }
             path.append(parameter1);

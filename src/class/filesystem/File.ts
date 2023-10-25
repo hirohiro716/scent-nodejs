@@ -29,7 +29,7 @@ export default class File extends FilesystemItem {
     public constructor(parameter1: string, parameter2?: Directory) {
         if (typeof parameter2 !== "undefined") {
             const path = new StringObject(parameter2.path);
-            if (path.toString().endsWith(FilesystemItem.getFileSeparator()) == false) {
+            if (path.toString().endsWith(FilesystemItem.getFileSeparator()) === false) {
                 path.append(FilesystemItem.getFileSeparator());
             }
             path.append(parameter1);
