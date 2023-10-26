@@ -1,35 +1,29 @@
 import formidable from "formidable";
-import { IncomingMessage } from "http";
-import File from "./filesystem/File.js";
-
+import File from "../filesystem/File.js";
 /**
  * フォームのクラス。
  */
 export class FormParser {
-
     /**
      * コンストラクタ。IncomingMessageオブジェクトを指定する。
-     * 
-     * @param incomingMessage 
+     *
+     * @param incomingMessage
      */
-    public constructor(incomingMessage: IncomingMessage) {
+    constructor(incomingMessage) {
         this.incomingMessage = incomingMessage;
         if (incomingMessage.closed) {
             throw new Error("Please change config.api.bodyParser to disabled. The stream has already closed.");
         }
     }
-
-    private readonly incomingMessage: IncomingMessage;
-
     /**
      * フォームから送信されたリクエストを解析する。使用前にconfig.api.bodyParserをfalseに設定しておく必要がある。
-     * 
-     * @returns 
+     *
+     * @returns
      */
-    public parse(): Promise<FormParseResult> {
-        return new Promise<FormParseResult>((resolve, reject) => {
+    parse() {
+        return new Promise((resolve, reject) => {
             const form = formidable({});
-            form.parse(this.incomingMessage).then((value: [formidable.Fields, formidable.Files]) => {
+            form.parse(this.incomingMessage).then((value) => {
                 resolve(new FormParseResult(value));
             }).catch((error) => {
                 reject(error);
@@ -37,18 +31,18 @@ export class FormParser {
         });
     }
 }
-
 /**
  * フォームを解析した結果のクラス。
  */
 export class FormParseResult {
-
     /**
      * コンストラクタ。依存クラスの解析結果を指定する。
-     * 
-     * @param valueOfDependencyClass 
+     *
+     * @param valueOfDependencyClass
      */
-    public constructor(valueOfDependencyClass : [formidable.Fields, formidable.Files]) {
+    constructor(valueOfDependencyClass) {
+        this.values = new Map();
+        this.files = new Map();
         const formidableAllFields = valueOfDependencyClass[0];
         for (const key of Object.keys(formidableAllFields)) {
             const values = formidableAllFields[key];
@@ -58,7 +52,7 @@ export class FormParseResult {
         }
         const formidableAllFiles = valueOfDependencyClass[1];
         for (const key of Object.keys(formidableAllFiles)) {
-            const files: File[] = [];
+            const files = [];
             const formidableFiles = formidableAllFiles[key];
             if (formidableFiles) {
                 for (const formidableFile of formidableFiles) {
@@ -68,25 +62,21 @@ export class FormParseResult {
             this.files.set(key, files);
         }
     }
-
-    private values = new Map<string, string[]>();
-
     /**
      * 値が送信されたすべてのHTMLInputElementの名前を取得する。
-     * 
-     * @returns 
+     *
+     * @returns
      */
-    public getValueNames(): string[] {
+    getValueNames() {
         return Array.from(this.values.keys());
     }
-
     /**
      * HTMLInputElementの名前を指定して値を取得する。
-     * 
-     * @param name 
-     * @returns 
+     *
+     * @param name
+     * @returns
      */
-    public getValue(name: string): string | undefined {
+    getValue(name) {
         const values = this.values.get(name);
         if (typeof values !== "undefined") {
             if (values.length > 0) {
@@ -95,39 +85,34 @@ export class FormParseResult {
         }
         return undefined;
     }
-
     /**
      * HTMLInputElementの名前を指定して複数値を取得する。
-     * 
-     * @param name 
-     * @returns 
+     *
+     * @param name
+     * @returns
      */
-    public getValues(name: string): string[] | undefined {
+    getValues(name) {
         const values = this.values.get(name);
         if (typeof values !== "undefined") {
             return values;
         }
         return undefined;
     }
-
-    private files = new Map<string, File[]>();
-    
     /**
      * ファイルが送信されたすべてのHTMLInputElementの名前を取得する。
-     * 
-     * @returns 
+     *
+     * @returns
      */
-    public getFileNames(): string[] {
+    getFileNames() {
         return Array.from(this.files.keys());
     }
-
     /**
      * HTMLInputElementの名前を指定してファイルを取得する。
-     * 
-     * @param name 
-     * @returns 
+     *
+     * @param name
+     * @returns
      */
-    public getFile(name: string): File | undefined {
+    getFile(name) {
         const files = this.files.get(name);
         if (typeof files !== "undefined") {
             if (files.length > 0) {
@@ -136,14 +121,13 @@ export class FormParseResult {
         }
         return undefined;
     }
-
     /**
      * HTMLInputElementの名前を指定して複数ファイルを取得する。
-     * 
-     * @param name 
-     * @returns 
+     *
+     * @param name
+     * @returns
      */
-    public getFiles(name: string): File[] | undefined {
+    getFiles(name) {
         const files = this.files.get(name);
         if (typeof files !== "undefined") {
             return files;

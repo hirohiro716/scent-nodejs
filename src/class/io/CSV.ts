@@ -1,5 +1,5 @@
 import { Writable } from "stream";
-import File from "./filesystem/File.js";
+import File from "../filesystem/File.js";
 import { StringDecoder } from "string_decoder";
 import { StringObject } from "scent-typescript";
 
@@ -90,7 +90,7 @@ export default class CSV {
      * @returns 
      */
     public read(file: File, firstRowIsHeader: boolean): Promise<void> {
-        const readable = file.createReadStream("utf-8");
+        const readable = file.createReadStream(undefined, "utf-8");
         const decoder = new StringDecoder("utf-8");
         return new Promise<void>((resolve, reject) => {
             let row: string[] = [];
