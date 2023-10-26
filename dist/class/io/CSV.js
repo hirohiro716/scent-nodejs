@@ -138,18 +138,18 @@ class CSV {
                         break;
                 }
             };
+            readable.on("end", () => {
+                resolve();
+            });
+            readable.on("error", (error) => {
+                reject(error);
+            });
             readable.on("data", (chunk) => {
                 const decodedString = decoder.write(chunk);
                 for (let index = 0; index < decodedString.length; index++) {
                     const one = decodedString.charAt(index);
                     parse(one);
                 }
-            });
-            readable.on("end", () => {
-                resolve();
-            });
-            readable.on("error", (error) => {
-                reject(error);
             });
         });
     }
