@@ -3,6 +3,7 @@
 import { Readable, Writable } from "stream";
 import FilesystemItem from "./FilesystemItem.js";
 import Directory from "./Directory.js";
+import { ByteArray } from "scent-typescript";
 /**
  * ファイルのクラス。
  */
@@ -46,6 +47,12 @@ export default class File extends FilesystemItem {
      */
     copy(destination: string): Promise<FilesystemItem>;
     /**
+     * ファイルの親ディレクトリを取得する。
+     *
+     * @returns
+     */
+    getParentDirectory(): Directory;
+    /**
      * ファイルサイズを取得する。
      *
      * @returns
@@ -54,17 +61,31 @@ export default class File extends FilesystemItem {
     /**
      * このファイルを読み取りできるStreamを作成する。
      *
-     * @param bufferEncoding エンコーディング。
      * @param highWaterMark バッファの容量の制限。
+     * @param bufferEncoding テキストを処理する場合のエンコーディング。
      * @returns
      */
-    createReadStream(bufferEncoding?: BufferEncoding, highWaterMark?: number): Readable;
+    createReadStream(highWaterMark?: number, bufferEncoding?: BufferEncoding): Readable;
     /**
      * このファイルに書き込みできるStreamを作成する。
      *
-     * @param bufferEncoding エンコーディング。
      * @param highWaterMark バッファの容量の制限。
+     * @param bufferEncoding テキストを処理する場合のエンコーディング。
      * @returns
      */
-    createWriteStream(bufferEncoding?: BufferEncoding, highWaterMark?: number): Writable;
+    createWriteStream(highWaterMark?: number, bufferEncoding?: BufferEncoding): Writable;
+    /**
+     * このファイルのバイト配列を作成する。
+     *
+     * @param highWaterMark
+     * @returns
+     */
+    createByteArray(highWaterMark?: number): Promise<ByteArray>;
+    /**
+     * このファイルに指定されたバイト配列を書き込む。
+     *
+     * @param byteArray
+     * @param highWaterMark
+     */
+    writeByteArray(byteArray: ByteArray, highWaterMark?: number): Promise<void>;
 }

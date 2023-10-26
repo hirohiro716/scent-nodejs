@@ -41,4 +41,41 @@ export default class Directory extends FilesystemItem {
      * @returns
      */
     copy(destination: string): Promise<Directory>;
+    /**
+     * ディレクトリの親ディレクトリを取得する。
+     *
+     * @returns
+     */
+    getParentDirectory(): Directory;
+    /**
+     * ディレクトリ直下のすべてのファイルシステムアイテムのパスを取得する。
+     *
+     * @returns
+     */
+    private getItemPaths;
+    /**
+     * ディレクトリ直下のすべてのファイルシステムアイテムを取得する。
+     *
+     * @param regexToFilterDirectoryName ディレクトリ名をフィルタするための正規表現。
+     * @param regexToFilterFileName ファイル名をフィルタするための正規表現。
+     * @returns
+     */
+    getItems(regexToFilterDirectoryName?: string, regexToFilterFileName?: string): Promise<FilesystemItem[]>;
+    /**
+     * 指定されたディレクトリ内にある、すべてのファイルシステムアイテムをサブディレクトリを含めて検索する。
+     *
+     * @param directory
+     * @param regexToFilterDirectoryName ディレクトリ名をフィルタするための正規表現。
+     * @param regexToFilterFileName ファイル名をフィルタするための正規表現。
+     * @returns
+     */
+    private static searchItemsFrom;
+    /**
+     * ディレクトリ内にある、すべてのファイルシステムアイテムをサブディレクトリを含めて検索する。
+     *
+     * @param regexToFilterDirectoryName ディレクトリ名をフィルタするための正規表現。
+     * @param regexToFilterFileName ファイル名をフィルタするための正規表現。
+     * @returns
+     */
+    searchItems(regexToFilterDirectoryName?: string, regexToFilterFileName?: string): Promise<FilesystemItem[]>;
 }

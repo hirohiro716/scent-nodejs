@@ -2,7 +2,7 @@ import { Readable, Writable } from "stream";
 import FilesystemItem from "./FilesystemItem.js";
 import fs from "fs";
 import Directory from "./Directory.js";
-import { StringObject } from "scent-typescript";
+import { ByteArray, StringObject } from "scent-typescript";
 
 /**
  * ファイルのクラス。
@@ -111,6 +111,15 @@ export default class File extends FilesystemItem {
     }
 
     /**
+     * ファイルの親ディレクトリを取得する。
+     * 
+     * @returns 
+     */
+    public getParentDirectory(): Directory {
+        return new Directory(super.getParentDirectoryPath());
+    }
+
+    /**
      * ファイルサイズを取得する。
      * 
      * @returns 
@@ -130,11 +139,11 @@ export default class File extends FilesystemItem {
     /**
      * このファイルを読み取りできるStreamを作成する。
      * 
-     * @param bufferEncoding エンコーディング。
      * @param highWaterMark バッファの容量の制限。
+     * @param bufferEncoding テキストを処理する場合のエンコーディング。
      * @returns 
      */
-    public createReadStream(bufferEncoding?: BufferEncoding, highWaterMark?: number): Readable {
+    public createReadStream(highWaterMark?: number, bufferEncoding?: BufferEncoding): Readable {
         const options = { bufferEncoding: bufferEncoding, highWaterMark: highWaterMark };
         return fs.createReadStream(this.path, options);
     }
@@ -142,12 +151,57 @@ export default class File extends FilesystemItem {
     /**
      * このファイルに書き込みできるStreamを作成する。
      * 
-     * @param bufferEncoding エンコーディング。
      * @param highWaterMark バッファの容量の制限。
+     * @param bufferEncoding テキストを処理する場合のエンコーディング。
      * @returns 
      */
-    public createWriteStream(bufferEncoding?: BufferEncoding, highWaterMark?: number): Writable {
+    public createWriteStream(highWaterMark?: number, bufferEncoding?: BufferEncoding): Writable {
         const options = { bufferEncoding: bufferEncoding, highWaterMark: highWaterMark };
         return fs.createWriteStream(this.path, options);
+    }
+
+    /**
+     * このファイルのバイト配列を作成する。
+     * 
+     * @param highWaterMark 
+     * @returns 
+     */
+    public createByteArray(highWaterMark?: number): Promise<ByteArray> {
+        return new Promise<ByteArray>((resolve, reject) => {
+            const blobParts: BlobPart[] = [];
+            const readable = this.createReadStream(highWaterMark);
+            readable.on("end", () => {
+                resolve(ByteArray.from(new Blob(blobParts)));
+            });
+            readable.on("error", (error: any) => {
+                reject(error);
+            });
+            readable.on("data", (chunk) => {
+                blobParts.push(chunk);
+            });
+        });
+    }
+
+    /**
+     * このファイルに指定されたバイト配列を書き込む。
+     * 
+     * @param byteArray
+     * @param highWaterMark 
+     */
+    public writeByteArray(byteArray: ByteArray, highWaterMark?: number): Promise<void> {
+        return new Promise<void>((resolve, reject) => {
+            const writable = this.createWriteStream(highWaterMark);
+            byteArray.toUnit8Array().then((unit8Array) => {
+                writable.write(unit8Array, (error: any) => {
+                    if (error) {
+                        reject(error);
+                    } else {
+                        resolve();
+                    }
+                });
+            }).catch((error:any) => {
+                reject(error);
+            });
+        });
     }
 }

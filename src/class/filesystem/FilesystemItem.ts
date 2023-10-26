@@ -44,6 +44,7 @@ export default abstract class FilesystemItem {
 
     /**
      * ファイルシステムアイテムの絶対パスを取得する。
+     * "."や".."などの短縮形または冗長な名前の解決も行う。
      * 
      * @returns 
      */
@@ -52,13 +53,13 @@ export default abstract class FilesystemItem {
     }
 
     /**
-     * ファイルシステムアイテムがファイルの場合にtrueを返す。
+     * ファイルシステムに指定されたパスのファイルが存在する場合はtrueを返す。
      * 
-     * @returns 
+     * @param filePath 
      */
-    public isFile(): Promise<boolean> {
+    public static hasFile(filePath: string): Promise<boolean> {
         return new Promise<boolean>((resolve, reject) => {
-            fs.stat(this._path, (error, stats) => {
+            fs.stat(filePath, (error, stats) => {
                 if (error) {
                     reject(error);
                     return;
@@ -69,13 +70,22 @@ export default abstract class FilesystemItem {
     }
 
     /**
-     * ファイルシステムアイテムがディレクトリの場合にtrueを返す。
+     * ファイルシステムアイテムがファイルの場合にtrueを返す。
      * 
      * @returns 
      */
-    public isDirectory(): Promise<boolean> {
+    public isFile(): Promise<boolean> {
+        return FilesystemItem.hasFile(this._path);
+    }
+
+    /**
+     * ファイルシステムに指定されたパスのディレクトリが存在する場合はtrueを返す。
+     * 
+     * @param directoryPath 
+     */
+    public static hasDirectory(directoryPath: string): Promise<boolean> {
         return new Promise<boolean>((resolve, reject) => {
-            fs.stat(this._path, (error, stats) => {
+            fs.stat(directoryPath, (error, stats) => {
                 if (error) {
                     reject(error);
                     return;
@@ -86,12 +96,12 @@ export default abstract class FilesystemItem {
     }
 
     /**
-     * ファイルシステムアイテムの親ディレクトリパスを取得する。
+     * ファイルシステムアイテムがディレクトリの場合にtrueを返す。
      * 
      * @returns 
      */
-    public getParentDirectoryPath(): string {
-        return path.dirname(this._path);
+    public isDirectory(): Promise<boolean> {
+        return FilesystemItem.hasDirectory(this._path);
     }
 
     /**
@@ -107,6 +117,15 @@ export default abstract class FilesystemItem {
                 reject(error);
             });
         });
+    }
+
+    /**
+     * ファイルシステムアイテムの親ディレクトリパスを取得する。
+     * 
+     * @returns 
+     */
+    protected getParentDirectoryPath(): string {
+        return path.dirname(this._path);
     }
 
     /**
@@ -138,6 +157,13 @@ export default abstract class FilesystemItem {
      * @returns
      */
     public abstract copy(destination: string): Promise<FilesystemItem>;
+
+    /**
+     * ファイルシステムアイテムの親ディレクトリを取得する。
+     * 
+     * @returns 
+     */
+    public abstract getParentDirectory(): any;
 
     /**
      * ファイルシステムパスの区切り文字を取得する。

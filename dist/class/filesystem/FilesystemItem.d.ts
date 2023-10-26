@@ -27,10 +27,17 @@ export default abstract class FilesystemItem {
     getName(): string;
     /**
      * ファイルシステムアイテムの絶対パスを取得する。
+     * "."や".."などの短縮形または冗長な名前の解決も行う。
      *
      * @returns
      */
     getAbsolutePath(): string;
+    /**
+     * ファイルシステムに指定されたパスのファイルが存在する場合はtrueを返す。
+     *
+     * @param filePath
+     */
+    static hasFile(filePath: string): Promise<boolean>;
     /**
      * ファイルシステムアイテムがファイルの場合にtrueを返す。
      *
@@ -38,23 +45,29 @@ export default abstract class FilesystemItem {
      */
     isFile(): Promise<boolean>;
     /**
+     * ファイルシステムに指定されたパスのディレクトリが存在する場合はtrueを返す。
+     *
+     * @param directoryPath
+     */
+    static hasDirectory(directoryPath: string): Promise<boolean>;
+    /**
      * ファイルシステムアイテムがディレクトリの場合にtrueを返す。
      *
      * @returns
      */
     isDirectory(): Promise<boolean>;
     /**
-     * ファイルシステムアイテムの親ディレクトリパスを取得する。
-     *
-     * @returns
-     */
-    getParentDirectoryPath(): string;
-    /**
      * ファイルシステムアイテムにアクセスする。
      *
      * @returns
      */
     access(): Promise<void>;
+    /**
+     * ファイルシステムアイテムの親ディレクトリパスを取得する。
+     *
+     * @returns
+     */
+    protected getParentDirectoryPath(): string;
     /**
      * ファイルシステムアイテムを新規作成する。
      *
@@ -81,6 +94,12 @@ export default abstract class FilesystemItem {
      * @returns
      */
     abstract copy(destination: string): Promise<FilesystemItem>;
+    /**
+     * ファイルシステムアイテムの親ディレクトリを取得する。
+     *
+     * @returns
+     */
+    abstract getParentDirectory(): any;
     /**
      * ファイルシステムパスの区切り文字を取得する。
      *

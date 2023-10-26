@@ -36,6 +36,7 @@ export default class FilesystemItem {
     }
     /**
      * ファイルシステムアイテムの絶対パスを取得する。
+     * "."や".."などの短縮形または冗長な名前の解決も行う。
      *
      * @returns
      */
@@ -43,13 +44,13 @@ export default class FilesystemItem {
         return path.resolve(this._path);
     }
     /**
-     * ファイルシステムアイテムがファイルの場合にtrueを返す。
+     * ファイルシステムに指定されたパスのファイルが存在する場合はtrueを返す。
      *
-     * @returns
+     * @param filePath
      */
-    isFile() {
+    static hasFile(filePath) {
         return new Promise((resolve, reject) => {
-            fs.stat(this._path, (error, stats) => {
+            fs.stat(filePath, (error, stats) => {
                 if (error) {
                     reject(error);
                     return;
@@ -59,13 +60,21 @@ export default class FilesystemItem {
         });
     }
     /**
-     * ファイルシステムアイテムがディレクトリの場合にtrueを返す。
+     * ファイルシステムアイテムがファイルの場合にtrueを返す。
      *
      * @returns
      */
-    isDirectory() {
+    isFile() {
+        return FilesystemItem.hasFile(this._path);
+    }
+    /**
+     * ファイルシステムに指定されたパスのディレクトリが存在する場合はtrueを返す。
+     *
+     * @param directoryPath
+     */
+    static hasDirectory(directoryPath) {
         return new Promise((resolve, reject) => {
-            fs.stat(this._path, (error, stats) => {
+            fs.stat(directoryPath, (error, stats) => {
                 if (error) {
                     reject(error);
                     return;
@@ -75,12 +84,12 @@ export default class FilesystemItem {
         });
     }
     /**
-     * ファイルシステムアイテムの親ディレクトリパスを取得する。
+     * ファイルシステムアイテムがディレクトリの場合にtrueを返す。
      *
      * @returns
      */
-    getParentDirectoryPath() {
-        return path.dirname(this._path);
+    isDirectory() {
+        return FilesystemItem.hasDirectory(this._path);
     }
     /**
      * ファイルシステムアイテムにアクセスする。
@@ -95,6 +104,14 @@ export default class FilesystemItem {
                 reject(error);
             });
         });
+    }
+    /**
+     * ファイルシステムアイテムの親ディレクトリパスを取得する。
+     *
+     * @returns
+     */
+    getParentDirectoryPath() {
+        return path.dirname(this._path);
     }
     /**
      * ファイルシステムパスの区切り文字を取得する。
