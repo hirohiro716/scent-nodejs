@@ -1,6 +1,7 @@
 import { Readable } from "stream";
 import sharp from "sharp";
 import File from "./File.js";
+import { ByteArray } from "scent-typescript";
 
 type FormatType = "jpg" | "png" | "gif" | "webp";
 
@@ -27,6 +28,41 @@ export default class ImageFile extends File {
                     sharpInstance = sharpInstance.resize({ width: resizeLongSide, height: resizeLongSide, fit: "inside"});
                 }
                 resolve(sharpInstance);
+            }).catch((error: any) => {
+                reject(error);
+            });
+        });
+    }
+
+    /**
+     * この画像の幅と高さを取得する。
+     * 
+     * @returns 
+     */
+    public getImageSize(): Promise<{width: number, height: number}> {
+        return ImageFile.getImageSizeFrom(this.getAbsolutePath());
+    }
+
+    /**
+     * 指定された画像の幅と高さを取得する。
+     * 
+     * @param imagePathOrBuffer 
+     * @returns 
+     */
+    public static getImageSizeFrom(imagePathOrBuffer: string | Buffer | ByteArray): Promise<{width: number, height: number}> {
+        return new Promise<{width: number, height: number}>(async (resolve, reject) => {
+            let sharpInstance;
+            if (imagePathOrBuffer instanceof ByteArray) {
+                sharpInstance = sharp(await imagePathOrBuffer.toBuffer());
+            } else {
+                sharpInstance = sharp(imagePathOrBuffer);
+            }
+            sharpInstance.metadata().then((meta) => {
+                if (meta.width && meta.height) {
+                    resolve({width: meta.width, height: meta.height});
+                } else {
+                    reject(new Error("The image size could not be read."));
+                }
             }).catch((error: any) => {
                 reject(error);
             });
