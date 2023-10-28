@@ -2,7 +2,7 @@
 /// <reference types="node" />
 import { Readable } from "stream";
 import File from "./File.js";
-import { ByteArray } from "scent-typescript";
+import { ByteArray, Dimension } from "scent-typescript";
 type FormatType = "jpg" | "png" | "gif" | "webp";
 export default class ImageFile extends File {
     /**
@@ -23,19 +23,13 @@ export default class ImageFile extends File {
      *
      * @returns
      */
-    getImageSize(): Promise<{
-        width: number;
-        height: number;
-    }>;
+    getImageSize(): Promise<Dimension>;
     /**
      * 指定された画像の幅と高さを取得する。
      *
      * @param imagePathOrBuffer
      * @returns
      */
-    static getImageSizeFrom(imagePathOrBuffer: string | Buffer | ByteArray): Promise<{
-        width: number;
-        height: number;
-    }>;
+    static getImageSizeFrom(imagePathOrBuffer: string | Buffer | ByteArray): Promise<Dimension>;
 }
 export {};

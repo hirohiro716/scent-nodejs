@@ -1,7 +1,7 @@
 import { Readable } from "stream";
 import sharp from "sharp";
 import File from "./File.js";
-import { ByteArray } from "scent-typescript";
+import { ByteArray, Dimension } from "scent-typescript";
 
 type FormatType = "jpg" | "png" | "gif" | "webp";
 
@@ -39,7 +39,7 @@ export default class ImageFile extends File {
      * 
      * @returns 
      */
-    public getImageSize(): Promise<{width: number, height: number}> {
+    public getImageSize(): Promise<Dimension> {
         return ImageFile.getImageSizeFrom(this.getAbsolutePath());
     }
 
@@ -49,7 +49,7 @@ export default class ImageFile extends File {
      * @param imagePathOrBuffer 
      * @returns 
      */
-    public static getImageSizeFrom(imagePathOrBuffer: string | Buffer | ByteArray): Promise<{width: number, height: number}> {
+    public static getImageSizeFrom(imagePathOrBuffer: string | Buffer | ByteArray): Promise<Dimension> {
         return new Promise<{width: number, height: number}>(async (resolve, reject) => {
             let sharpInstance;
             if (imagePathOrBuffer instanceof ByteArray) {
