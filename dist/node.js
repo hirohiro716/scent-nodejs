@@ -4,6 +4,7 @@ import ImageFile from "./class/filesystem/ImageFile.js";
 import Directory from "./class/filesystem/Directory.js";
 import CSV from "./class/io/CSV.js";
 import { FormParser, FormParseResult } from "./class/io/FormParser.js";
+import QRCode from "./class/graphic/QRCode.js";
 import Encrypter from "./class/Encrypter.js";
 import Prisma from "./class/database/Prisma.js";
-export { FilesystemItem, File, ImageFile, Directory, CSV, FormParser, FormParseResult, Encrypter, Prisma, };
+export { FilesystemItem, File, ImageFile, Directory, CSV, FormParser, FormParseResult, QRCode, Encrypter, Prisma, };

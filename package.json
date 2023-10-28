@@ -10,10 +10,13 @@
     "dependencies": {
         "@prisma/client": "^4.16.2",
         "@types/formidable": "^3.4.0",
+        "@types/qrcode": "^1.5.4",
         "formidable": "^3.5.0",
         "fs": "^0.0.1-security",
         "path": "^0.12.7",
         "sharp": "^0.32.4",
+        "jsqr": "^1.4.0",
+        "qrcode": "^1.5.3",
         "scent-typescript": "git+https://github.com/hirohiro716/scent-typescript.git"
     },
     "devDependencies": {
