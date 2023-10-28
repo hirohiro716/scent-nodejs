@@ -5,7 +5,7 @@
     "main": "dist/node.js",
     "types": "dist/node.d.ts",
     "scripts": {
-        "build": "tsc"
+        "build": "rm -rf dist/; tsc"
     },
     "dependencies": {
         "@prisma/client": "^4.16.2",
