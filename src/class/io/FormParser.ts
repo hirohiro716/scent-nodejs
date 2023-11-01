@@ -8,7 +8,7 @@ import File from "../filesystem/File.js";
 export class FormParser {
 
     /**
-     * コンストラクタ。IncomingMessageオブジェクトを指定する。
+     * コンストラクタ。IncomingMessageインスタンスを指定する。
      * 
      * @param incomingMessage 
      */

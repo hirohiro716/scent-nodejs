@@ -1,11 +1,11 @@
 import { PrismaClient } from "@prisma/client";
 /**
- * PrismaClientオブジェクト。
+ * PrismaClientのクラス。
  */
 export default class Prisma extends PrismaClient {
     private static instance;
     /**
-     * 一意のPrismaオブジェクトを取得する。
+     * 一意のPrismaインスタンスを取得する。
      *
      * @returns
      */

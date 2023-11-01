@@ -2,14 +2,14 @@ import { PrismaClient } from "@prisma/client";
 import { StringObject } from "scent-typescript";
 
 /**
- * PrismaClientオブジェクト。
+ * PrismaClientのクラス。
  */
 export default class Prisma extends PrismaClient {
 
     private static instance: Prisma;
 
     /**
-     * 一意のPrismaオブジェクトを取得する。
+     * 一意のPrismaインスタンスを取得する。
      * 
      * @returns 
      */
