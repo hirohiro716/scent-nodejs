@@ -11,6 +11,8 @@ import QRCode from "./class/graphic/QRCode.js";
 
 import Encrypter from "./class/Encrypter.js";
 
+import { Comparison, Comparisons } from "./class/database/Comparison.js";
+import { WhereSet, Where } from "./class/database/WhereSet.js";
 import Prisma from "./class/database/Prisma.js";
 
 export {
@@ -18,5 +20,5 @@ export {
     CSV, FormParser, FormParseResult,
     QRCode,
     Encrypter,
-    Prisma,
+    Comparison, Comparisons, WhereSet, Where, Prisma,
 };
