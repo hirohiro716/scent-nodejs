@@ -15,7 +15,7 @@ export default class Prisma extends PrismaClient {
      */
     public static getInstance(): Prisma {
         if (typeof window === "undefined" && typeof Prisma.instance === "undefined") {
-            Prisma.instance = new Prisma();
+            this.instance = new Prisma();
         }
         return Prisma.instance;
     }
