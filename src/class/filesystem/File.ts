@@ -44,16 +44,8 @@ export default class File extends FilesystemItem {
      * 
      * @returns 
      */
-    public create(): Promise<void> {
-        return new Promise<void>((resolve, reject) => {
-            fs.writeFile(this.path, "", (error) => {
-                if (error) {
-                    reject(error);
-                    return;
-                }
-                resolve();
-            });
-        })
+    public async create(): Promise<void> {
+        await fs.promises.writeFile(this.path, "");
     }
     
     /**
@@ -61,16 +53,8 @@ export default class File extends FilesystemItem {
      * 
      * @returns 
      */
-    public delete(): Promise<void> {
-        return new Promise<void>((resolve, reject) => {
-            fs.rm(this.path, { force: true }, (error) => {
-                if (error) {
-                    reject(error);
-                    return;
-                }
-                resolve();
-            });
-        });
+    public async delete(): Promise<void> {
+        await fs.promises.rm(this.path, { force: true });
     }
 
     /**
@@ -79,17 +63,9 @@ export default class File extends FilesystemItem {
      * @param destination 
      * @returns 
      */
-    public move(destination: string): Promise<void> {
-        return new Promise<void>((resolve, reject) => {
-            fs.rename(this.path, destination, (error) => {
-                if (error) {
-                    reject(error);
-                    return;
-                }
-                this.path = destination;
-                resolve();
-            });
-        });
+    public async move(destination: string): Promise<void> {
+        await fs.promises.rename(this.path, destination);
+        this.path = destination;
     }
 
     /**
@@ -98,16 +74,9 @@ export default class File extends FilesystemItem {
      * @param destination 
      * @returns 
      */
-    public copy(destination: string): Promise<FilesystemItem> {
-        return new Promise<File>((resolve, reject) => {
-            fs.cp(this.path, destination, { force: true}, (error) => {
-                if (error) {
-                    reject(error);
-                    return;
-                }
-                resolve(new File(destination));
-            })
-        });
+    public async copy(destination: string): Promise<FilesystemItem> {
+        await fs.promises.cp(this.path, destination, { force: true});
+        return new File(destination);
     }
 
     /**
@@ -124,16 +93,9 @@ export default class File extends FilesystemItem {
      * 
      * @returns 
      */
-    public getSize(): Promise<number> {
-        return new Promise<number>((resolve, reject) => {
-            fs.stat(this.path, (error, stats) => {
-                if (error) {
-                    reject(error);
-                    return;
-                }
-                resolve(stats.size);
-            });
-        });
+    public async getSize(): Promise<number> {
+        const stats = await fs.promises.stat(this.path);
+        return stats.size;
     }
 
     /**

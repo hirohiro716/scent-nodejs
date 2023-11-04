@@ -14,7 +14,8 @@ export declare class FormParser {
     constructor(incomingMessage: IncomingMessage);
     private readonly incomingMessage;
     /**
-     * フォームから送信されたリクエストを解析する。使用前にconfig.api.bodyParserをfalseに設定しておく必要がある。
+     * フォームから送信されたリクエストを解析する。
+     * Next.jsで使用する場合は、使用前にconfig.api.bodyParserをfalseに設定しておく必要がある。
      *
      * @returns
      */

@@ -22,19 +22,15 @@ export class FormParser {
     private readonly incomingMessage: IncomingMessage;
 
     /**
-     * フォームから送信されたリクエストを解析する。使用前にconfig.api.bodyParserをfalseに設定しておく必要がある。
+     * フォームから送信されたリクエストを解析する。
+     * Next.jsで使用する場合は、使用前にconfig.api.bodyParserをfalseに設定しておく必要がある。
      * 
      * @returns 
      */
-    public parse(): Promise<FormParseResult> {
-        return new Promise<FormParseResult>((resolve, reject) => {
-            const form = formidable({});
-            form.parse(this.incomingMessage).then((value: [formidable.Fields, formidable.Files]) => {
-                resolve(new FormParseResult(value));
-            }).catch((error) => {
-                reject(error);
-            });
-        });
+    public async parse(): Promise<FormParseResult> {
+        const formidableInstance = formidable({});
+        const values: [formidable.Fields, formidable.Files] = await formidableInstance.parse(this.incomingMessage);
+        return new FormParseResult(values);
     }
 }
 

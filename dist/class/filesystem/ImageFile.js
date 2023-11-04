@@ -10,24 +10,19 @@ export default class ImageFile extends File {
      * @param maximumLongSide
      * @returns
      */
-    change({ format, qualityPercentage, resizeLongSide: resizeLongSide }) {
-        return new Promise((resolve, reject) => {
-            let sharpInstance = sharp(this.getAbsolutePath());
-            sharpInstance.metadata().then((meta) => {
-                if (format) {
-                    sharpInstance = sharpInstance.toFormat(format, { quality: qualityPercentage });
-                }
-                else if (meta.format) {
-                    sharpInstance = sharpInstance.toFormat(meta.format, { quality: qualityPercentage });
-                }
-                if (resizeLongSide) {
-                    sharpInstance = sharpInstance.resize({ width: resizeLongSide, height: resizeLongSide, fit: "inside" });
-                }
-                resolve(sharpInstance);
-            }).catch((error) => {
-                reject(error);
-            });
-        });
+    async change({ format, qualityPercentage, resizeLongSide: resizeLongSide }) {
+        let sharpInstance = sharp(this.getAbsolutePath());
+        const meta = await sharpInstance.metadata();
+        if (format) {
+            sharpInstance = sharpInstance.toFormat(format, { quality: qualityPercentage });
+        }
+        else if (meta.format) {
+            sharpInstance = sharpInstance.toFormat(meta.format, { quality: qualityPercentage });
+        }
+        if (resizeLongSide) {
+            sharpInstance = sharpInstance.resize({ width: resizeLongSide, height: resizeLongSide, fit: "inside" });
+        }
+        return sharpInstance;
     }
     /**
      * この画像の幅と高さを取得する。
@@ -43,25 +38,20 @@ export default class ImageFile extends File {
      * @param imagePathOrBuffer
      * @returns
      */
-    static getImageSizeFrom(imagePathOrBuffer) {
-        return new Promise(async (resolve, reject) => {
-            let sharpInstance;
-            if (imagePathOrBuffer instanceof ByteArray) {
-                sharpInstance = sharp(await imagePathOrBuffer.toBuffer());
-            }
-            else {
-                sharpInstance = sharp(imagePathOrBuffer);
-            }
-            sharpInstance.metadata().then((meta) => {
-                if (meta.width && meta.height) {
-                    resolve({ width: meta.width, height: meta.height });
-                }
-                else {
-                    reject(new Error("The image size could not be read."));
-                }
-            }).catch((error) => {
-                reject(error);
-            });
-        });
+    static async getImageSizeFrom(imagePathOrBuffer) {
+        let sharpInstance;
+        if (imagePathOrBuffer instanceof ByteArray) {
+            sharpInstance = sharp(await imagePathOrBuffer.toBuffer());
+        }
+        else {
+            sharpInstance = sharp(imagePathOrBuffer);
+        }
+        const meta = await sharpInstance.metadata();
+        if (meta.width && meta.height) {
+            return { width: meta.width, height: meta.height };
+        }
+        else {
+            throw new Error("The image size could not be read.");
+        }
     }
 }

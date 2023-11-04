@@ -48,16 +48,9 @@ export default class FilesystemItem {
      *
      * @param filePath
      */
-    static hasFile(filePath) {
-        return new Promise((resolve, reject) => {
-            fs.stat(filePath, (error, stats) => {
-                if (error) {
-                    reject(error);
-                    return;
-                }
-                resolve(stats.isFile());
-            });
-        });
+    static async hasFile(filePath) {
+        const stats = await fs.promises.stat(filePath);
+        return stats.isFile();
     }
     /**
      * ファイルシステムアイテムがファイルの場合にtrueを返す。
@@ -72,16 +65,9 @@ export default class FilesystemItem {
      *
      * @param directoryPath
      */
-    static hasDirectory(directoryPath) {
-        return new Promise((resolve, reject) => {
-            fs.stat(directoryPath, (error, stats) => {
-                if (error) {
-                    reject(error);
-                    return;
-                }
-                resolve(stats.isDirectory());
-            });
-        });
+    static async hasDirectory(directoryPath) {
+        const stats = await fs.promises.stat(directoryPath);
+        return stats.isDirectory();
     }
     /**
      * ファイルシステムアイテムがディレクトリの場合にtrueを返す。
@@ -96,14 +82,8 @@ export default class FilesystemItem {
      *
      * @returns
      */
-    access() {
-        return new Promise((resolve, reject) => {
-            fs.promises.access(this._path).then(() => {
-                resolve();
-            }).catch((error) => {
-                reject(error);
-            });
-        });
+    async access() {
+        await fs.promises.access(this._path);
     }
     /**
      * ファイルシステムアイテムの親ディレクトリパスを取得する。

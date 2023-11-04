@@ -24,9 +24,8 @@ export default class QRCode {
      * QRコードの画像を読み込むストリームを作成する。
      *
      * @param type ファイル形式。デフォルトは"svg"。
-     * @param highWaterMark バッファの容量の制限。
      * @returns
      */
-    createReadStream(type?: Type, highWaterMark?: number): Promise<Readable>;
+    createReadStream(type?: Type): Promise<Readable>;
 }
 export {};

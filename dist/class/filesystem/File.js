@@ -27,32 +27,16 @@ export default class File extends FilesystemItem {
      *
      * @returns
      */
-    create() {
-        return new Promise((resolve, reject) => {
-            fs.writeFile(this.path, "", (error) => {
-                if (error) {
-                    reject(error);
-                    return;
-                }
-                resolve();
-            });
-        });
+    async create() {
+        await fs.promises.writeFile(this.path, "");
     }
     /**
      * ファイルを削除する。
      *
      * @returns
      */
-    delete() {
-        return new Promise((resolve, reject) => {
-            fs.rm(this.path, { force: true }, (error) => {
-                if (error) {
-                    reject(error);
-                    return;
-                }
-                resolve();
-            });
-        });
+    async delete() {
+        await fs.promises.rm(this.path, { force: true });
     }
     /**
      * ファイルを移動する。
@@ -60,17 +44,9 @@ export default class File extends FilesystemItem {
      * @param destination
      * @returns
      */
-    move(destination) {
-        return new Promise((resolve, reject) => {
-            fs.rename(this.path, destination, (error) => {
-                if (error) {
-                    reject(error);
-                    return;
-                }
-                this.path = destination;
-                resolve();
-            });
-        });
+    async move(destination) {
+        await fs.promises.rename(this.path, destination);
+        this.path = destination;
     }
     /**
      * ファイルをコピーする。
@@ -78,16 +54,9 @@ export default class File extends FilesystemItem {
      * @param destination
      * @returns
      */
-    copy(destination) {
-        return new Promise((resolve, reject) => {
-            fs.cp(this.path, destination, { force: true }, (error) => {
-                if (error) {
-                    reject(error);
-                    return;
-                }
-                resolve(new File(destination));
-            });
-        });
+    async copy(destination) {
+        await fs.promises.cp(this.path, destination, { force: true });
+        return new File(destination);
     }
     /**
      * ファイルの親ディレクトリを取得する。
@@ -102,16 +71,9 @@ export default class File extends FilesystemItem {
      *
      * @returns
      */
-    getSize() {
-        return new Promise((resolve, reject) => {
-            fs.stat(this.path, (error, stats) => {
-                if (error) {
-                    reject(error);
-                    return;
-                }
-                resolve(stats.size);
-            });
-        });
+    async getSize() {
+        const stats = await fs.promises.stat(this.path);
+        return stats.size;
     }
     /**
      * このファイルを読み取りできるStreamを作成する。

@@ -27,40 +27,33 @@ export default class QRCode {
      * 
      * @returns 
      */
-    public decode(): Promise<string> {
-        return new Promise<string>(async (resolve, reject) => {
-            if (typeof this.contentOrImageData === "string") {
-                resolve(this.contentOrImageData);
+    public async decode(): Promise<string> {
+        if (typeof this.contentOrImageData === "string") {
+            return this.contentOrImageData;
+        } else {
+            let buffer: Buffer;
+            if (this.contentOrImageData instanceof Buffer) {
+                buffer = this.contentOrImageData;
             } else {
-                try {
-                    let buffer: Buffer;
-                    if (this.contentOrImageData instanceof Buffer) {
-                        buffer = this.contentOrImageData;
-                    } else {
-                        buffer = await this.contentOrImageData.toBuffer();
-                    }
-                    const {data, info} = await sharp(buffer).ensureAlpha().raw().toBuffer({resolveWithObject: true});
-                    const qrcode = jsQR(new Uint8ClampedArray(data.buffer), info.width, info.height);
-                    if (qrcode === null) {
-                        reject(new Error("Could not parse the QR code."));
-                    } else {
-                        resolve(qrcode.data);
-                    }
-                } catch (error: any) {
-                    reject(error);
-                }
+                buffer = await this.contentOrImageData.toBuffer();
             }
-        });
+            const {data, info} = await sharp(buffer).ensureAlpha().raw().toBuffer({resolveWithObject: true});
+            const qrcode = jsQR(new Uint8ClampedArray(data.buffer), info.width, info.height);
+            if (qrcode === null) {
+                throw new Error("Could not parse the QR code.");
+            } else {
+                return qrcode.data;
+            }
+        }
     }
 
     /**
      * QRコードの画像を読み込むストリームを作成する。
      * 
      * @param type ファイル形式。デフォルトは"svg"。
-     * @param highWaterMark バッファの容量の制限。
      * @returns 
      */
-    public createReadStream(type: Type = "svg", highWaterMark?: number): Promise<Readable> {
+    public async createReadStream(type: Type = "svg"): Promise<Readable> {
         return new Promise<Readable>((resolve, reject) => {
             if (typeof this.contentOrImageData === "string") {
                 switch (type) {

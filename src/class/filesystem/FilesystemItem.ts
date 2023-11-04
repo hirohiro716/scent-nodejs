@@ -57,16 +57,9 @@ export default abstract class FilesystemItem {
      * 
      * @param filePath 
      */
-    public static hasFile(filePath: string): Promise<boolean> {
-        return new Promise<boolean>((resolve, reject) => {
-            fs.stat(filePath, (error, stats) => {
-                if (error) {
-                    reject(error);
-                    return;
-                }
-                resolve(stats.isFile());
-            });
-        });
+    public static async hasFile(filePath: string): Promise<boolean> {
+        const stats = await fs.promises.stat(filePath);
+        return stats.isFile();
     }
 
     /**
@@ -83,16 +76,9 @@ export default abstract class FilesystemItem {
      * 
      * @param directoryPath 
      */
-    public static hasDirectory(directoryPath: string): Promise<boolean> {
-        return new Promise<boolean>((resolve, reject) => {
-            fs.stat(directoryPath, (error, stats) => {
-                if (error) {
-                    reject(error);
-                    return;
-                }
-                resolve(stats.isDirectory());
-            });
-        });
+    public static async hasDirectory(directoryPath: string): Promise<boolean> {
+        const stats = await fs.promises.stat(directoryPath);
+        return stats.isDirectory();
     }
 
     /**
@@ -109,14 +95,8 @@ export default abstract class FilesystemItem {
      * 
      * @returns 
      */
-    public access(): Promise<void> {
-        return new Promise<void>((resolve, reject) => {
-            fs.promises.access(this._path).then(() => {
-                resolve();
-            }).catch((error: any) => {
-                reject(error);
-            });
-        });
+    public async access(): Promise<void> {
+        await fs.promises.access(this._path);
     }
 
     /**

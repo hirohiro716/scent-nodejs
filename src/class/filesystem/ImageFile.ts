@@ -15,23 +15,18 @@ export default class ImageFile extends File {
      * @param maximumLongSide
      * @returns
      */
-    public change({format, qualityPercentage, resizeLongSide: resizeLongSide}: {format?: FormatType, qualityPercentage?: number, resizeLongSide?: number}): Promise<Readable> {
-        return new Promise<Readable>((resolve, reject) => {
-            let sharpInstance = sharp(this.getAbsolutePath());
-            sharpInstance.metadata().then((meta) => {
-                if (format) {
-                    sharpInstance = sharpInstance.toFormat(format, {quality: qualityPercentage});
-                } else if (meta.format) {
-                    sharpInstance = sharpInstance.toFormat(meta.format, {quality: qualityPercentage});
-                }
-                if (resizeLongSide) {
-                    sharpInstance = sharpInstance.resize({ width: resizeLongSide, height: resizeLongSide, fit: "inside"});
-                }
-                resolve(sharpInstance);
-            }).catch((error: any) => {
-                reject(error);
-            });
-        });
+    public async change({format, qualityPercentage, resizeLongSide: resizeLongSide}: {format?: FormatType, qualityPercentage?: number, resizeLongSide?: number}): Promise<Readable> {
+        let sharpInstance = sharp(this.getAbsolutePath());
+        const meta = await sharpInstance.metadata();
+        if (format) {
+            sharpInstance = sharpInstance.toFormat(format, {quality: qualityPercentage});
+        } else if (meta.format) {
+            sharpInstance = sharpInstance.toFormat(meta.format, {quality: qualityPercentage});
+        }
+        if (resizeLongSide) {
+            sharpInstance = sharpInstance.resize({ width: resizeLongSide, height: resizeLongSide, fit: "inside"});
+        }
+        return sharpInstance;
     }
 
     /**
@@ -49,23 +44,18 @@ export default class ImageFile extends File {
      * @param imagePathOrBuffer 
      * @returns 
      */
-    public static getImageSizeFrom(imagePathOrBuffer: string | Buffer | ByteArray): Promise<Dimension> {
-        return new Promise<{width: number, height: number}>(async (resolve, reject) => {
-            let sharpInstance;
-            if (imagePathOrBuffer instanceof ByteArray) {
-                sharpInstance = sharp(await imagePathOrBuffer.toBuffer());
-            } else {
-                sharpInstance = sharp(imagePathOrBuffer);
-            }
-            sharpInstance.metadata().then((meta) => {
-                if (meta.width && meta.height) {
-                    resolve({width: meta.width, height: meta.height});
-                } else {
-                    reject(new Error("The image size could not be read."));
-                }
-            }).catch((error: any) => {
-                reject(error);
-            });
-        });
+    public static async getImageSizeFrom(imagePathOrBuffer: string | Buffer | ByteArray): Promise<Dimension> {
+        let sharpInstance;
+        if (imagePathOrBuffer instanceof ByteArray) {
+            sharpInstance = sharp(await imagePathOrBuffer.toBuffer());
+        } else {
+            sharpInstance = sharp(imagePathOrBuffer);
+        }
+        const meta = await sharpInstance.metadata();
+        if (meta.width && meta.height) {
+            return {width: meta.width, height: meta.height};
+        } else {
+            throw new Error("The image size could not be read.");
+        }
     }
 }

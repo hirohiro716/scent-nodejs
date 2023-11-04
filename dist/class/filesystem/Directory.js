@@ -28,32 +28,16 @@ export default class Directory extends FilesystemItem {
      *
      * @returns
      */
-    create() {
-        return new Promise((resolve, reject) => {
-            fs.mkdir(this.path, { recursive: true }, (error) => {
-                if (error) {
-                    reject(error);
-                    return;
-                }
-                resolve();
-            });
-        });
+    async create() {
+        await fs.promises.mkdir(this.path, { recursive: true });
     }
     /**
      * ディレクトリを削除する。内包するアイテムも再帰的に削除される。
      *
      * @returns
      */
-    delete() {
-        return new Promise((resolve, reject) => {
-            fs.rm(this.path, { recursive: true, force: true }, (error) => {
-                if (error) {
-                    reject(error);
-                    return;
-                }
-                resolve();
-            });
-        });
+    async delete() {
+        await fs.promises.rm(this.path, { recursive: true, force: true });
     }
     /**
      * ディレクトリを移動する。
@@ -61,17 +45,9 @@ export default class Directory extends FilesystemItem {
      * @param destination
      * @returns
      */
-    move(destination) {
-        return new Promise((resolve, reject) => {
-            fs.rename(this.path, destination, (error) => {
-                if (error) {
-                    reject(error);
-                    return;
-                }
-                this.path = destination;
-                resolve();
-            });
-        });
+    async move(destination) {
+        await fs.promises.rename(this.path, destination);
+        this.path = destination;
     }
     /**
      * ディレクトリをコピーする。内包するアイテムも再帰的にコピーされる。
@@ -79,16 +55,9 @@ export default class Directory extends FilesystemItem {
      * @param destination
      * @returns
      */
-    copy(destination) {
-        return new Promise((resolve, reject) => {
-            fs.cp(this.path, destination, { force: true, recursive: true }, (error) => {
-                if (error) {
-                    reject(error);
-                    return;
-                }
-                resolve(new Directory(destination));
-            });
-        });
+    async copy(destination) {
+        await fs.promises.cp(this.path, destination, { force: true, recursive: true });
+        return new Directory(destination);
     }
     /**
      * ディレクトリの親ディレクトリを取得する。
@@ -103,22 +72,14 @@ export default class Directory extends FilesystemItem {
      *
      * @returns
      */
-    getItemPaths() {
-        return new Promise(async (resolve, reject) => {
-            fs.readdir(this.getAbsolutePath(), (error, filesystemItemNames) => {
-                if (error) {
-                    reject(error);
-                }
-                else {
-                    const filesystemItemPaths = [];
-                    for (const filesystemItemName of filesystemItemNames) {
-                        const filesystemItemPath = path.join(this.getAbsolutePath(), filesystemItemName);
-                        filesystemItemPaths.push(filesystemItemPath);
-                    }
-                    resolve(filesystemItemPaths);
-                }
-            });
-        });
+    async getItemPaths() {
+        const filesystemItemNames = await fs.promises.readdir(this.getAbsolutePath());
+        const filesystemItemPaths = [];
+        for (const filesystemItemName of filesystemItemNames) {
+            const filesystemItemPath = path.join(this.getAbsolutePath(), filesystemItemName);
+            filesystemItemPaths.push(filesystemItemPath);
+        }
+        return filesystemItemPaths;
     }
     /**
      * ディレクトリ直下のすべてのファイルシステムアイテムを取得する。
@@ -127,31 +88,24 @@ export default class Directory extends FilesystemItem {
      * @param regexToFilterFileName ファイル名をフィルタするための正規表現。
      * @returns
      */
-    getItems(regexToFilterDirectoryName, regexToFilterFileName) {
-        return new Promise(async (resolve, reject) => {
-            try {
-                const filesystemItems = [];
-                const filesystemItemPaths = await this.getItemPaths();
-                for (const filesystemItemPath of filesystemItemPaths) {
-                    if (await FilesystemItem.hasDirectory(filesystemItemPath)) {
-                        const itemDirectory = new Directory(filesystemItemPath);
-                        if (typeof regexToFilterDirectoryName === "undefined" || new Regex(regexToFilterDirectoryName).test(itemDirectory.getName())) {
-                            filesystemItems.push(itemDirectory);
-                        }
-                    }
-                    else {
-                        const itemFile = new File(filesystemItemPath);
-                        if (typeof regexToFilterFileName === "undefined" || Regex.from(regexToFilterFileName).test(itemFile.getName())) {
-                            filesystemItems.push(itemFile);
-                        }
-                    }
+    async getItems(regexToFilterDirectoryName, regexToFilterFileName) {
+        const filesystemItems = [];
+        const filesystemItemPaths = await this.getItemPaths();
+        for (const filesystemItemPath of filesystemItemPaths) {
+            if (await FilesystemItem.hasDirectory(filesystemItemPath)) {
+                const itemDirectory = new Directory(filesystemItemPath);
+                if (typeof regexToFilterDirectoryName === "undefined" || new Regex(regexToFilterDirectoryName).test(itemDirectory.getName())) {
+                    filesystemItems.push(itemDirectory);
                 }
-                resolve(filesystemItems);
             }
-            catch (error) {
-                reject(error);
+            else {
+                const itemFile = new File(filesystemItemPath);
+                if (typeof regexToFilterFileName === "undefined" || Regex.from(regexToFilterFileName).test(itemFile.getName())) {
+                    filesystemItems.push(itemFile);
+                }
             }
-        });
+        }
+        return filesystemItems;
     }
     /**
      * 指定されたディレクトリ内にある、すべてのファイルシステムアイテムをサブディレクトリを含めて検索する。
@@ -161,32 +115,25 @@ export default class Directory extends FilesystemItem {
      * @param regexToFilterFileName ファイル名をフィルタするための正規表現。
      * @returns
      */
-    static searchItemsFrom(directory, regexToFilterDirectoryName, regexToFilterFileName) {
-        return new Promise(async (resolve, reject) => {
-            try {
-                const filesystemItems = [];
-                const filesystemItemPaths = await directory.getItemPaths();
-                for (const filesystemItemPath of filesystemItemPaths) {
-                    if (await FilesystemItem.hasDirectory(filesystemItemPath)) {
-                        const itemDirectory = new Directory(filesystemItemPath);
-                        if (typeof regexToFilterDirectoryName === "undefined" || new Regex(regexToFilterDirectoryName).test(itemDirectory.getName())) {
-                            filesystemItems.push(itemDirectory);
-                            filesystemItems.push(...await Directory.searchItemsFrom(itemDirectory, regexToFilterDirectoryName, regexToFilterFileName));
-                        }
-                    }
-                    else {
-                        const itemFile = new File(filesystemItemPath);
-                        if (typeof regexToFilterFileName === "undefined" || Regex.from(regexToFilterFileName).test(itemFile.getName())) {
-                            filesystemItems.push(itemFile);
-                        }
-                    }
+    static async searchItemsFrom(directory, regexToFilterDirectoryName, regexToFilterFileName) {
+        const filesystemItems = [];
+        const filesystemItemPaths = await directory.getItemPaths();
+        for (const filesystemItemPath of filesystemItemPaths) {
+            if (await FilesystemItem.hasDirectory(filesystemItemPath)) {
+                const itemDirectory = new Directory(filesystemItemPath);
+                if (typeof regexToFilterDirectoryName === "undefined" || new Regex(regexToFilterDirectoryName).test(itemDirectory.getName())) {
+                    filesystemItems.push(itemDirectory);
+                    filesystemItems.push(...await Directory.searchItemsFrom(itemDirectory, regexToFilterDirectoryName, regexToFilterFileName));
                 }
-                resolve(filesystemItems);
             }
-            catch (error) {
-                reject(error);
+            else {
+                const itemFile = new File(filesystemItemPath);
+                if (typeof regexToFilterFileName === "undefined" || Regex.from(regexToFilterFileName).test(itemFile.getName())) {
+                    filesystemItems.push(itemFile);
+                }
             }
-        });
+        }
+        return filesystemItems;
     }
     /**
      * ディレクトリ内にある、すべてのファイルシステムアイテムをサブディレクトリを含めて検索する。

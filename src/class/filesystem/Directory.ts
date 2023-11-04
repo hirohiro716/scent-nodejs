@@ -44,16 +44,8 @@ export default class Directory extends FilesystemItem {
      * 
      * @returns 
      */
-    public create(): Promise<void> {
-        return new Promise<void>((resolve, reject) => {
-            fs.mkdir(this.path, { recursive: true }, (error) => {
-                if (error) {
-                    reject(error);
-                    return;
-                }
-                resolve();
-            });
-        });
+    public async create(): Promise<void> {
+        await fs.promises.mkdir(this.path, { recursive: true });
     }
 
     /**
@@ -61,16 +53,8 @@ export default class Directory extends FilesystemItem {
      * 
      * @returns 
      */
-    public delete(): Promise<void> {
-        return new Promise<void>((resolve, reject) => {
-            fs.rm(this.path, { recursive: true, force: true }, (error) => {
-                if (error) {
-                    reject(error);
-                    return;
-                }
-                resolve();
-            });
-        });
+    public async delete(): Promise<void> {
+        await fs.promises.rm(this.path, { recursive: true, force: true });
     }
 
     /**
@@ -79,17 +63,9 @@ export default class Directory extends FilesystemItem {
      * @param destination 
      * @returns 
      */
-    public move(destination: string): Promise<void> {
-        return new Promise<void>((resolve, reject) => {
-            fs.rename(this.path, destination, (error) => {
-                if (error) {
-                    reject(error);
-                    return;
-                }
-                this.path = destination;
-                resolve();
-            });
-        });
+    public async move(destination: string): Promise<void> {
+        await fs.promises.rename(this.path, destination);
+        this.path = destination;
     }
 
     /**
@@ -98,16 +74,9 @@ export default class Directory extends FilesystemItem {
      * @param destination 
      * @returns 
      */
-    public copy(destination: string): Promise<Directory> {
-        return new Promise<Directory>((resolve, reject) => {
-            fs.cp(this.path, destination, { force: true, recursive: true }, (error) => {
-                if (error) {
-                    reject(error);
-                    return;
-                }
-                resolve(new Directory(destination));
-            });
-        });
+    public async copy(destination: string): Promise<Directory> {
+        await fs.promises.cp(this.path, destination, { force: true, recursive: true });
+        return new Directory(destination);
     }
 
     /**
@@ -124,21 +93,14 @@ export default class Directory extends FilesystemItem {
      * 
      * @returns 
      */
-    private getItemPaths(): Promise<string[]> {
-        return new Promise<string[]>(async (resolve, reject) => {
-            fs.readdir(this.getAbsolutePath(), (error: any, filesystemItemNames: string[]) => {
-                if (error) {
-                    reject(error);
-                } else {
-                    const filesystemItemPaths: string[] = [];
-                    for (const filesystemItemName of filesystemItemNames) {
-                        const filesystemItemPath = path.join(this.getAbsolutePath(), filesystemItemName);
-                        filesystemItemPaths.push(filesystemItemPath);
-                    }
-                    resolve(filesystemItemPaths);
-                }
-            });
-        });
+    private async getItemPaths(): Promise<string[]> {
+        const filesystemItemNames = await fs.promises.readdir(this.getAbsolutePath());
+        const filesystemItemPaths: string[] = [];
+        for (const filesystemItemName of filesystemItemNames) {
+            const filesystemItemPath = path.join(this.getAbsolutePath(), filesystemItemName);
+            filesystemItemPaths.push(filesystemItemPath);
+        }
+        return filesystemItemPaths;
     }
 
     /**
@@ -148,29 +110,23 @@ export default class Directory extends FilesystemItem {
      * @param regexToFilterFileName ファイル名をフィルタするための正規表現。
      * @returns 
      */
-    public getItems(regexToFilterDirectoryName?: string, regexToFilterFileName?: string): Promise<FilesystemItem[]> {
-        return new Promise<FilesystemItem[]>(async (resolve, reject) => {
-            try {
-                const filesystemItems: FilesystemItem[] = [];
-                const filesystemItemPaths = await this.getItemPaths();
-                for (const filesystemItemPath of filesystemItemPaths) {
-                    if (await FilesystemItem.hasDirectory(filesystemItemPath)) {
-                        const itemDirectory = new Directory(filesystemItemPath);
-                        if (typeof regexToFilterDirectoryName === "undefined" || new Regex(regexToFilterDirectoryName).test(itemDirectory.getName())) {
-                            filesystemItems.push(itemDirectory);
-                        }
-                    } else {
-                        const itemFile = new File(filesystemItemPath);
-                        if (typeof regexToFilterFileName === "undefined" || Regex.from(regexToFilterFileName).test(itemFile.getName())) {
-                            filesystemItems.push(itemFile);
-                        }
-                    }
+    public async getItems(regexToFilterDirectoryName?: string, regexToFilterFileName?: string): Promise<FilesystemItem[]> {
+        const filesystemItems: FilesystemItem[] = [];
+        const filesystemItemPaths = await this.getItemPaths();
+        for (const filesystemItemPath of filesystemItemPaths) {
+            if (await FilesystemItem.hasDirectory(filesystemItemPath)) {
+                const itemDirectory = new Directory(filesystemItemPath);
+                if (typeof regexToFilterDirectoryName === "undefined" || new Regex(regexToFilterDirectoryName).test(itemDirectory.getName())) {
+                    filesystemItems.push(itemDirectory);
                 }
-                resolve(filesystemItems);
-            } catch (error: any) {
-                reject(error);
+            } else {
+                const itemFile = new File(filesystemItemPath);
+                if (typeof regexToFilterFileName === "undefined" || Regex.from(regexToFilterFileName).test(itemFile.getName())) {
+                    filesystemItems.push(itemFile);
+                }
             }
-        });
+        }
+        return filesystemItems;
     }
 
     /**
@@ -181,30 +137,24 @@ export default class Directory extends FilesystemItem {
      * @param regexToFilterFileName ファイル名をフィルタするための正規表現。
      * @returns 
      */
-    private static searchItemsFrom(directory: Directory, regexToFilterDirectoryName?: string, regexToFilterFileName?: string): Promise<FilesystemItem[]> {
-        return new Promise<FilesystemItem[]>(async (resolve, reject) => {
-            try {
-                const filesystemItems: FilesystemItem[] = [];
-                const filesystemItemPaths = await directory.getItemPaths();
-                for (const filesystemItemPath of filesystemItemPaths) {
-                    if (await FilesystemItem.hasDirectory(filesystemItemPath)) {
-                        const itemDirectory = new Directory(filesystemItemPath);
-                        if (typeof regexToFilterDirectoryName === "undefined" || new Regex(regexToFilterDirectoryName).test(itemDirectory.getName())) {
-                            filesystemItems.push(itemDirectory);
-                            filesystemItems.push(...await Directory.searchItemsFrom(itemDirectory, regexToFilterDirectoryName, regexToFilterFileName));
-                        }
-                    } else {
-                        const itemFile = new File(filesystemItemPath);
-                        if (typeof regexToFilterFileName === "undefined" || Regex.from(regexToFilterFileName).test(itemFile.getName())) {
-                            filesystemItems.push(itemFile);
-                        }
-                    }
+    private static async searchItemsFrom(directory: Directory, regexToFilterDirectoryName?: string, regexToFilterFileName?: string): Promise<FilesystemItem[]> {
+        const filesystemItems: FilesystemItem[] = [];
+        const filesystemItemPaths = await directory.getItemPaths();
+        for (const filesystemItemPath of filesystemItemPaths) {
+            if (await FilesystemItem.hasDirectory(filesystemItemPath)) {
+                const itemDirectory = new Directory(filesystemItemPath);
+                if (typeof regexToFilterDirectoryName === "undefined" || new Regex(regexToFilterDirectoryName).test(itemDirectory.getName())) {
+                    filesystemItems.push(itemDirectory);
+                    filesystemItems.push(...await Directory.searchItemsFrom(itemDirectory, regexToFilterDirectoryName, regexToFilterFileName));
                 }
-                resolve(filesystemItems);
-            } catch (error: any) {
-                reject(error);
+            } else {
+                const itemFile = new File(filesystemItemPath);
+                if (typeof regexToFilterFileName === "undefined" || Regex.from(regexToFilterFileName).test(itemFile.getName())) {
+                    filesystemItems.push(itemFile);
+                }
             }
-        });
+        }
+        return filesystemItems;
     }
 
     /**
