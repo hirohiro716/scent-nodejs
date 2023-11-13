@@ -5,18 +5,23 @@
     "main": "dist/node.js",
     "types": "dist/node.d.ts",
     "scripts": {
+        "test": "node dist/test.js",
         "build": "rm -rf dist/; tsc"
     },
     "dependencies": {
-        "@prisma/client": "^4.16.2",
         "@types/formidable": "^3.4.0",
-        "@types/qrcode": "^1.5.4",
         "formidable": "^3.5.0",
         "fs": "^0.0.1-security",
         "path": "^0.12.7",
+        "@prisma/client": "^4.16.2",
+        "@types/pg": "^8.10.7",
+        "pg": "^8.11.3",
+        "@types/sqlite3": "^3.1.10",
+        "sqlite3": "^5.1.6",
         "sharp": "^0.32.4",
-        "jsqr": "^1.4.0",
+        "@types/qrcode": "^1.5.4",
         "qrcode": "^1.5.3",
+        "jsqr": "^1.4.0",
         "scent-typescript": "git+https://github.com/hirohiro716/scent-typescript.git"
     },
     "devDependencies": {
