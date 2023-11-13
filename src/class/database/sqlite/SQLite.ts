@@ -1,4 +1,4 @@
-import { Datetime, RecordMap, StringObject, Table } from "scent-typescript";
+import { Datetime, StringObject, Table } from "scent-typescript";
 import File from "../../filesystem/File.js";
 import { DataNotFoundError, Database, DatabaseError } from "../Database.js";
 import sqlite3 from "sqlite3";
