@@ -8,30 +8,62 @@ import { StringObject } from "scent-typescript";
  */
 export default class CSV {
 
+    private _headers: string[] | null = null;
+
     /**
      * CSVファイルのヘッダー(項目名)。
      */
-    public headers: string[] | null = null;
+    public get headers(): string[] | null {
+        return this._headers;
+    }
+
+    public set headers(headers: string[] | null) {
+        this._headers = headers;
+    }
 
     /**
      * CSVファイルの初期区切り文字。
      */
     public static readonly DEFAULT_DELIMITER: string = ",";
 
+    private _delimiter: string = CSV.DEFAULT_DELIMITER;
+
     /**
      * CSVファイルの区切り文字。
      */
-    public delimiter: string = CSV.DEFAULT_DELIMITER;
+    public get delimiter(): string {
+        return this.delimiter;
+    }
+
+    public set delimiter(delimiter: string) {
+        this._delimiter = delimiter;
+    }
+
+    private _lineSeparator: string = "\r\n";
 
     /**
      * CSVファイルの改行。
      */
-    public lineSeparator: string = "\r\n";
+    public get lineSeparator(): string {
+        return this._lineSeparator;
+    }
+
+    public set lineSeparator(lineSeparator: string) {
+        this.lineSeparator = lineSeparator;
+    }
+
+    private _rows: string[][] = [];
 
     /**
      * CSVファイルの行情報。
      */
-    public rows: string[][] = [];
+    public get rows(): string[][] {
+        return this._rows;
+    }
+
+    public set rows(rows: string[][]) {
+        this._rows = rows;
+    }
 
     /**
      * CSVファイル(utf-8)をStreamに書き込む。
@@ -40,9 +72,9 @@ export default class CSV {
      * @returns 
      */
     public write(writable: Writable): Promise<void> {
-        let writing: string[][] = [...this.rows];
-        if (this.headers) {
-            writing.unshift(this.headers);
+        let writing: string[][] = [...this._rows];
+        if (this._headers) {
+            writing.unshift(this._headers);
         }
         return new Promise<void>((resolve, reject) => {
             let index = 0;
@@ -55,13 +87,13 @@ export default class CSV {
                 const line = new StringObject();
                 for (const value of row) {
                     if (line.length() > 0) {
-                        line.append(this.delimiter);
+                        line.append(this._delimiter);
                     }
                     line.append('"');
                     line.append(StringObject.from(value).replace('"', '""'));
                     line.append('"');
                 }
-                line.append(this.lineSeparator);
+                line.append(this._lineSeparator);
                 const result = writable.write(line.toString(), "utf-8", (error) => {
                     if (error) {
                         reject(error);
@@ -99,7 +131,7 @@ export default class CSV {
             let stringMaybeEnd = false;
             const parse: (one: string) => void = (one): void => {
                 switch (one) {
-                    case this.delimiter:
+                    case this._delimiter:
                         if (withinString === false || stringMaybeEnd) {
                             row.push(value.toString());
                             value.set(null);
@@ -115,10 +147,10 @@ export default class CSV {
                             if (value.length() > 0 || row.length > 0) {
                                 row.push(value.toString());
                                 value.set(null);
-                                if (firstRowIsHeader && this.headers === null) {
-                                    this.headers = row;
+                                if (firstRowIsHeader && this._headers === null) {
+                                    this._headers = row;
                                 } else {
-                                    this.rows.push(row);
+                                    this._rows.push(row);
                                 }
                                 row = [];
                             }
