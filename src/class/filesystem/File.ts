@@ -41,8 +41,6 @@ export default class File extends FilesystemItem {
 
     /**
      * ファイルを新規作成する。
-     * 
-     * @returns 
      */
     public async create(): Promise<void> {
         await fs.promises.writeFile(this.path, "");
@@ -50,8 +48,6 @@ export default class File extends FilesystemItem {
     
     /**
      * ファイルを削除する。
-     * 
-     * @returns 
      */
     public async delete(): Promise<void> {
         await fs.promises.rm(this.path, { force: true });
@@ -61,7 +57,6 @@ export default class File extends FilesystemItem {
      * ファイルを移動する。
      * 
      * @param destination 
-     * @returns 
      */
     public async move(destination: string): Promise<void> {
         await fs.promises.rename(this.path, destination);

@@ -26,6 +26,7 @@ export default class QRCode {
      * QRコードをデコードして内容を取得する。
      * 
      * @returns 
+     * @throws Error QRコードの解析に失敗した場合。
      */
     public async decode(): Promise<string> {
         if (typeof this.contentOrImageData === "string") {

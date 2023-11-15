@@ -39,7 +39,7 @@ export default class PostgreSQL extends Database<pg.Pool, ConnectionParameters> 
     /**
      * コネクションプールを終了する。
      * 
-     * @returns 
+     * @throws DatabaseError データベースの処理に失敗した場合。
      */
     public static async poolEnd(): Promise<void> {
         if (this.pools !== null) {
@@ -57,6 +57,8 @@ export default class PostgreSQL extends Database<pg.Pool, ConnectionParameters> 
 
     /**
      * アダプターが生成したデータベースに接続するためのクライアントインスタンス。
+     * 
+     * @throws DatabaseError データベースの処理に失敗した場合。
      */
     public get poolClient(): pg.PoolClient {
         if (this._poolClient === null) {
@@ -197,6 +199,7 @@ export default class PostgreSQL extends Database<pg.Pool, ConnectionParameters> 
      * データベースサーバーの現在の時刻を取得する。
      * 
      * @returns 
+     * @throws DatabaseError データベースの処理に失敗した場合。
      */
     public async fetchNow(): Promise<Datetime> {
         const date: Date = await this.fetchField("SELECT CLOCK_TIMESTAMP();");
@@ -207,6 +210,7 @@ export default class PostgreSQL extends Database<pg.Pool, ConnectionParameters> 
      * 次のシーケンス値を取得する。
      * 
      * @returns 
+     * @throws DatabaseError データベースの処理に失敗した場合。
      */
     public fetchNextSequenceValue(name: string): Promise<any> {
         return this.fetchField("SELECT NEXTVAL(?);", [name]);
@@ -216,6 +220,7 @@ export default class PostgreSQL extends Database<pg.Pool, ConnectionParameters> 
      * テーブルの書き込みをロックする。
      * 
      * @param table 
+     * @throws DatabaseError データベースの処理に失敗した場合。
      */
     public async lockTableAsReadonly(table: string | Table<any>): Promise<void> {
         const sql = new StringObject("LOCK TABLE ");
@@ -232,6 +237,7 @@ export default class PostgreSQL extends Database<pg.Pool, ConnectionParameters> 
      * テーブルの読み取りと書き込みをロックする。
      * 
      * @param table 
+     * @throws DatabaseError データベースの処理に失敗した場合。
      */
     public async lockTable(table: string | Table<any>): Promise<void> {
         const sql = new StringObject("LOCK TABLE ");

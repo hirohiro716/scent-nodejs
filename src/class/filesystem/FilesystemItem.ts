@@ -92,8 +92,6 @@ export default abstract class FilesystemItem {
 
     /**
      * ファイルシステムアイテムにアクセスする。
-     * 
-     * @returns 
      */
     public async access(): Promise<void> {
         await fs.promises.access(this._path);
@@ -110,15 +108,11 @@ export default abstract class FilesystemItem {
 
     /**
      * ファイルシステムアイテムを新規作成する。
-     * 
-     * @returns
      */
     public abstract create(): Promise<void>;
 
     /**
      * ファイルシステムアイテムを削除する。
-     * 
-     * @returns
      */
     public abstract delete(): Promise<void>;
 
@@ -126,7 +120,6 @@ export default abstract class FilesystemItem {
      * ファイルシステムアイテムを指定されたパスに移動する。
      * 
      * @param destination
-     * @returns
      */
     public abstract move(destination: string): Promise<void>;
 

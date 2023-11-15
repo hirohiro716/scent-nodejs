@@ -1,6 +1,5 @@
-import { resolve } from "path";
 import { Column, Datetime, RecordMap, StringObject, Table } from "scent-typescript";
-import { WhereSet } from "./WhereSet";
+import { WhereSet } from "./WhereSet.js";
 
 /**
  * データベースに接続するための抽象クラス。
@@ -28,6 +27,8 @@ export abstract class Database<A, P> {
 
     /**
      * データベースに接続するためのアダプターのインスタンス。
+     * 
+     * @throws DatabaseError データベースの処理に失敗した場合。
      */
     public get adapter(): A {
         if (this._adapter === null) {
@@ -41,6 +42,7 @@ export abstract class Database<A, P> {
      * 
      * @param connectionParameters 
      * @returns
+     * @throws DatabaseError データベースの処理に失敗した場合。
      */
     protected abstract createAdapter(connectionParameters: P): Promise<A>;
 
@@ -48,11 +50,14 @@ export abstract class Database<A, P> {
      * アダプターをデータベースに接続する。
      * 
      * @param adapter 
+     * @throws DatabaseError データベースの処理に失敗した場合。
      */
     protected abstract connectAdapter(adapter: A): Promise<void>;
 
     /**
      * データベースに接続する。
+     * 
+     * @throws DatabaseError データベースの処理に失敗した場合。
      */
     public async connect(): Promise<void> {
         try {
@@ -81,6 +86,8 @@ export abstract class Database<A, P> {
 
     /**
      * アダプターにステートメントを実行後に待機する最大時間のミリ秒をセットする。
+     * 
+     * @throws DatabaseError データベースの処理に失敗した場合。
      */
     protected abstract setStatementTimeoutToAdapter(milliseconds: number): Promise<void>;
 
@@ -97,7 +104,8 @@ export abstract class Database<A, P> {
      * 
      * @param sql プレースホルダーを使用したSQL。
      * @param parameters バインド変数。
-     * @requires 更新されたレコード数。
+     * @returns 更新されたレコード数。
+     * @throws DatabaseError データベースの処理に失敗した場合。
      */
     protected abstract executeByAdapter(sql: string, parameters?: any[]): Promise<number>;
 
@@ -106,7 +114,8 @@ export abstract class Database<A, P> {
      * 
      * @param sql プレースホルダーを使用したSQL。
      * @param parameters バインド変数。
-     * @requires 更新されたレコード数。
+     * @returns 更新されたレコード数。
+     * @throws DatabaseError データベースの処理に失敗した場合。
      */
     public async execute(sql: string, parameters?: any[]): Promise<number> {
         try {
@@ -132,6 +141,7 @@ export abstract class Database<A, P> {
      * @param sql 
      * @param parameters 
      * @returns
+     * @throws DatabaseError データベースの処理に失敗した場合。
      */
     protected abstract fetchFieldByAdapter(sql: string, parameters?: any[]): Promise<any>;
 
@@ -141,6 +151,7 @@ export abstract class Database<A, P> {
      * @param sql 
      * @param parameters 
      * @returns
+     * @throws DatabaseError データベースの処理に失敗した場合。
      */
     public async fetchField(sql: string, parameters?: any[]): Promise<any> {
         try {
@@ -166,6 +177,7 @@ export abstract class Database<A, P> {
      * @param sql 
      * @param parameters 
      * @returns
+     * @throws DatabaseError データベースの処理に失敗した場合。
      */
     protected abstract fetchRecordByAdapter(sql: string, parameters?: any[]): Promise<Record<string, any>>;
 
@@ -175,6 +187,7 @@ export abstract class Database<A, P> {
      * @param sql 
      * @param parameters 
      * @returns
+     * @throws DatabaseError データベースの処理に失敗した場合。
      */
     public async fetchRecord(sql: string, parameters?: any[]): Promise<Record<string, any>> {
         try {
@@ -200,6 +213,7 @@ export abstract class Database<A, P> {
      * @param sql 
      * @param parameters 
      * @returns
+     * @throws DatabaseError データベースの処理に失敗した場合。
      */
     protected abstract fetchRecordsByAdapter(sql: string, parameters?: any[]): Promise<Record<string, any>[]>;
 
@@ -209,6 +223,7 @@ export abstract class Database<A, P> {
      * @param sql 
      * @param parameters 
      * @returns
+     * @throws DatabaseError データベースの処理に失敗した場合。
      */
     public async fetchRecords(sql: string, parameters?: any[]): Promise<Record<string, any>[]> {
         try {
@@ -233,6 +248,7 @@ export abstract class Database<A, P> {
      * 
      * @param record 追加するレコード。
      * @param table 対象のテーブル。
+     * @throws DatabaseError データベースの処理に失敗した場合。
      */
     public async insert(record: Record<string, any> | RecordMap, table: string | Table<any>): Promise<void> {
         const sql = new StringObject("INSERT INTO ");
@@ -272,6 +288,7 @@ export abstract class Database<A, P> {
      * @param table 対象のテーブル。
      * @param whereSet 更新対象を見つけるための検索条件。
      * @returns
+     * @throws DatabaseError データベースの処理に失敗した場合。
      */
     public async update(record: Record<string, any> | RecordMap, table: string | Table<any>, whereSet: WhereSet): Promise<number> {
         const sql = new StringObject("UPDATE ");
@@ -304,12 +321,12 @@ export abstract class Database<A, P> {
         return result;
     }
 
-
     /**
      * 指定されたテーブルが存在する場合はtrueを返す。
      * 
      * @param table 
      * @returns
+     * @throws DatabaseError データベースの処理に失敗した場合。
      */
     public abstract existsTable(table: string | Table<any>): Promise<boolean>;
 
@@ -318,36 +335,43 @@ export abstract class Database<A, P> {
      * 
      * @param table 
      * @returns
+     * @throws DatabaseError データベースの処理に失敗した場合。
      */
     public abstract fetchColumns(table: string | Table<any>): Promise<string[]>;
-
-
-
 
     /**
      * トランザクションブロックを初期化する。以降の更新は全て明示的なコミットもしくはロールバックされるまで、単一のトランザクションの中で実行される。
      * 
      * @param option 
+     * @throws DatabaseError データベースの処理に失敗した場合。
      */
     public abstract begin(option?: any): Promise<void>;
 
     /**
      * 現在のトランザクションをロールバックする。そのトランザクションで行われた全ての変更が廃棄される。 
+     * 
+     * @throws DatabaseError データベースの処理に失敗した場合。
      */
     public abstract rollback(): Promise<void>;
 
     /**
      * 現在のトランザクションをコミットする。 そのトランザクションで行われた全ての変更が確定される。
+     * 
+     * @throws DatabaseError データベースの処理に失敗した場合。
      */
     public abstract commit(): Promise<void>;
 
     /**
      * アダプターをデータベースから切断する。
+     * 
+     * @throws DatabaseError データベースの処理に失敗した場合。
      */
     protected abstract closeAdapter(): Promise<void>;
 
     /**
      * データベース接続を閉じる。
+     * 
+     * @throws DatabaseError データベースの処理に失敗した場合。
      */
     public async close(): Promise<void> {
         try {

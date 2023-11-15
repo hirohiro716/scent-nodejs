@@ -69,7 +69,6 @@ export default class CSV {
      * CSVファイル(utf-8)をStreamに書き込む。
      * 
      * @param writable 
-     * @returns 
      */
     public write(writable: Writable): Promise<void> {
         let writing: string[][] = [...this._rows];
@@ -119,7 +118,6 @@ export default class CSV {
      * 
      * @param file 
      * @param firstRowIsHeader 最初の行をヘッダー(項目名)として扱う場合はtrueを指定。
-     * @returns 
      */
     public read(file: File, firstRowIsHeader: boolean): Promise<void> {
         const readable = file.createReadStream(undefined, "utf-8");
