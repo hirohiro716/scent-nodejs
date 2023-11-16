@@ -79,8 +79,6 @@ export default class FilesystemItem {
     }
     /**
      * ファイルシステムアイテムにアクセスする。
-     *
-     * @returns
      */
     async access() {
         await fs.promises.access(this._path);

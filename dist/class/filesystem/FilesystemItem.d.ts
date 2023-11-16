@@ -58,8 +58,6 @@ export default abstract class FilesystemItem {
     isDirectory(): Promise<boolean>;
     /**
      * ファイルシステムアイテムにアクセスする。
-     *
-     * @returns
      */
     access(): Promise<void>;
     /**
@@ -70,21 +68,16 @@ export default abstract class FilesystemItem {
     protected getParentDirectoryPath(): string;
     /**
      * ファイルシステムアイテムを新規作成する。
-     *
-     * @returns
      */
     abstract create(): Promise<void>;
     /**
      * ファイルシステムアイテムを削除する。
-     *
-     * @returns
      */
     abstract delete(): Promise<void>;
     /**
      * ファイルシステムアイテムを指定されたパスに移動する。
      *
      * @param destination
-     * @returns
      */
     abstract move(destination: string): Promise<void>;
     /**

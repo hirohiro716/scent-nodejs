@@ -29,6 +29,7 @@ export default class ImageFile extends File {
      *
      * @param imagePathOrBuffer
      * @returns
+     * @throws Error 画像の読み取りに失敗した場合。
      */
     static getImageSizeFrom(imagePathOrBuffer: string | Buffer | ByteArray): Promise<Dimension>;
 }

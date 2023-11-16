@@ -17,21 +17,16 @@ export default class Directory extends FilesystemItem {
     constructor(directoryName: string, parentDirectory: Directory);
     /**
      * ディレクトリを新規作成する。
-     *
-     * @returns
      */
     create(): Promise<void>;
     /**
      * ディレクトリを削除する。内包するアイテムも再帰的に削除される。
-     *
-     * @returns
      */
     delete(): Promise<void>;
     /**
      * ディレクトリを移動する。
      *
      * @param destination
-     * @returns
      */
     move(destination: string): Promise<void>;
     /**

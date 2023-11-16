@@ -10,6 +10,7 @@ export declare class FormParser {
      * コンストラクタ。IncomingMessageインスタンスを指定する。
      *
      * @param incomingMessage
+     * @throws Error ストリームが正常に読み取れない場合。
      */
     constructor(incomingMessage: IncomingMessage);
     private readonly incomingMessage;

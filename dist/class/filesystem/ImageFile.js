@@ -37,6 +37,7 @@ export default class ImageFile extends File {
      *
      * @param imagePathOrBuffer
      * @returns
+     * @throws Error 画像の読み取りに失敗した場合。
      */
     static async getImageSizeFrom(imagePathOrBuffer) {
         let sharpInstance;

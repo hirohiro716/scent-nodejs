@@ -2,7 +2,7 @@ import crypto from "crypto";
 /**
  * 文字列を暗号化するクラス。
  */
-class Encrypter {
+export default class Encrypter {
     constructor() {
         this.algorithm = "aes-256-gcm";
         this.keyLength = 32;
@@ -16,17 +16,44 @@ class Encrypter {
      */
     encrypt(target, key) {
         if (typeof key !== "undefined") {
-            this.key = Buffer.from(key, "hex").subarray(0, this.keyLength).toString("hex");
+            this._key = Buffer.from(key, "hex").subarray(0, this.keyLength).toString("hex");
         }
         else {
-            this.key = crypto.randomBytes(this.keyLength).toString("hex");
+            this._key = crypto.randomBytes(this.keyLength).toString("hex");
         }
-        this.iv = crypto.randomBytes(this.ivLength).toString("hex");
-        const cipher = crypto.createCipheriv(this.algorithm, Buffer.from(this.key, "hex"), Buffer.from(this.iv, "hex"));
+        this._iv = crypto.randomBytes(this.ivLength).toString("hex");
+        const cipher = crypto.createCipheriv(this.algorithm, Buffer.from(this._key, "hex"), Buffer.from(this._iv, "hex"));
         let encrypted = cipher.update(target, "utf-8", "hex");
         encrypted += cipher.final("hex");
-        this.authTag = cipher.getAuthTag().toString("hex");
+        this._authTag = cipher.getAuthTag().toString("hex");
         return encrypted;
+    }
+    /**
+     * encryptメソッドの実行時に自動生成される。
+     */
+    get key() {
+        return this._key;
+    }
+    set key(key) {
+        this._key = key;
+    }
+    /**
+     * encryptメソッドの実行時に自動生成される。
+     */
+    get iv() {
+        return this._iv;
+    }
+    set iv(iv) {
+        this._iv = iv;
+    }
+    /**
+     * encryptメソッドの実行時に自動生成される。
+     */
+    get authTag() {
+        return this._authTag;
+    }
+    set authTag(authTag) {
+        this._authTag = authTag;
     }
     /**
      * 暗号化時に使用したキー、iv、認証タグを使用して、指定された文字列を復号化する。
@@ -44,4 +71,3 @@ class Encrypter {
         return decrypted + decipher.final("utf-8");
     }
 }
-export default Encrypter;

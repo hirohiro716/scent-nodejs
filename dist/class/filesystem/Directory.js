@@ -25,16 +25,12 @@ export default class Directory extends FilesystemItem {
     }
     /**
      * ディレクトリを新規作成する。
-     *
-     * @returns
      */
     async create() {
         await fs.promises.mkdir(this.path, { recursive: true });
     }
     /**
      * ディレクトリを削除する。内包するアイテムも再帰的に削除される。
-     *
-     * @returns
      */
     async delete() {
         await fs.promises.rm(this.path, { recursive: true, force: true });
@@ -43,7 +39,6 @@ export default class Directory extends FilesystemItem {
      * ディレクトリを移動する。
      *
      * @param destination
-     * @returns
      */
     async move(destination) {
         await fs.promises.rename(this.path, destination);

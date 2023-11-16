@@ -22,21 +22,16 @@ export default class File extends FilesystemItem {
     constructor(fileName: string, parentDirectory: Directory);
     /**
      * ファイルを新規作成する。
-     *
-     * @returns
      */
     create(): Promise<void>;
     /**
      * ファイルを削除する。
-     *
-     * @returns
      */
     delete(): Promise<void>;
     /**
      * ファイルを移動する。
      *
      * @param destination
-     * @returns
      */
     move(destination: string): Promise<void>;
     /**
