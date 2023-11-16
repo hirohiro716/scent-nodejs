@@ -1,13 +1,13 @@
 /// <reference types="node" />
 import { Column, Datetime, RecordMap, StringObject, Table } from "scent-typescript";
-import { WhereSet } from "./WhereSet";
+import { WhereSet } from "./WhereSet.js";
 /**
  * データベースに接続するための抽象クラス。
  *
  * @template A データベースに接続するためのアダプターの型。
  * @template P アダプターのデータベース接続に必要なパラメーターの型。
  */
-export declare abstract class Database<A, P> {
+export declare abstract class Connector<A, P> {
     /**
      * コンストラクタ。データベース接続アダプターの接続に使用するパラメーターを指定する。
      *
@@ -21,6 +21,8 @@ export declare abstract class Database<A, P> {
     private _adapter;
     /**
      * データベースに接続するためのアダプターのインスタンス。
+     *
+     * @throws DatabaseError データベースの処理に失敗した場合。
      */
     get adapter(): A;
     /**
@@ -28,16 +30,20 @@ export declare abstract class Database<A, P> {
      *
      * @param connectionParameters
      * @returns
+     * @throws DatabaseError データベースの処理に失敗した場合。
      */
     protected abstract createAdapter(connectionParameters: P): Promise<A>;
     /**
      * アダプターをデータベースに接続する。
      *
      * @param adapter
+     * @throws DatabaseError データベースの処理に失敗した場合。
      */
     protected abstract connectAdapter(adapter: A): Promise<void>;
     /**
      * データベースに接続する。
+     *
+     * @throws DatabaseError データベースの処理に失敗した場合。
      */
     connect(): Promise<void>;
     private _statementTimeoutMilliseconds;
@@ -48,6 +54,8 @@ export declare abstract class Database<A, P> {
     set statementTimeoutMilliseconds(milliseconds: number);
     /**
      * アダプターにステートメントを実行後に待機する最大時間のミリ秒をセットする。
+     *
+     * @throws DatabaseError データベースの処理に失敗した場合。
      */
     protected abstract setStatementTimeoutToAdapter(milliseconds: number): Promise<void>;
     /**
@@ -62,7 +70,8 @@ export declare abstract class Database<A, P> {
      *
      * @param sql プレースホルダーを使用したSQL。
      * @param parameters バインド変数。
-     * @requires 更新されたレコード数。
+     * @returns 更新されたレコード数。
+     * @throws DatabaseError データベースの処理に失敗した場合。
      */
     protected abstract executeByAdapter(sql: string, parameters?: any[]): Promise<number>;
     /**
@@ -70,7 +79,8 @@ export declare abstract class Database<A, P> {
      *
      * @param sql プレースホルダーを使用したSQL。
      * @param parameters バインド変数。
-     * @requires 更新されたレコード数。
+     * @returns 更新されたレコード数。
+     * @throws DatabaseError データベースの処理に失敗した場合。
      */
     execute(sql: string, parameters?: any[]): Promise<number>;
     /**
@@ -79,6 +89,7 @@ export declare abstract class Database<A, P> {
      * @param sql
      * @param parameters
      * @returns
+     * @throws DatabaseError データベースの処理に失敗した場合。
      */
     protected abstract fetchFieldByAdapter(sql: string, parameters?: any[]): Promise<any>;
     /**
@@ -87,6 +98,7 @@ export declare abstract class Database<A, P> {
      * @param sql
      * @param parameters
      * @returns
+     * @throws DatabaseError データベースの処理に失敗した場合。
      */
     fetchField(sql: string, parameters?: any[]): Promise<any>;
     /**
@@ -95,6 +107,7 @@ export declare abstract class Database<A, P> {
      * @param sql
      * @param parameters
      * @returns
+     * @throws DatabaseError データベースの処理に失敗した場合。
      */
     protected abstract fetchRecordByAdapter(sql: string, parameters?: any[]): Promise<Record<string, any>>;
     /**
@@ -103,6 +116,7 @@ export declare abstract class Database<A, P> {
      * @param sql
      * @param parameters
      * @returns
+     * @throws DatabaseError データベースの処理に失敗した場合。
      */
     fetchRecord(sql: string, parameters?: any[]): Promise<Record<string, any>>;
     /**
@@ -111,6 +125,7 @@ export declare abstract class Database<A, P> {
      * @param sql
      * @param parameters
      * @returns
+     * @throws DatabaseError データベースの処理に失敗した場合。
      */
     protected abstract fetchRecordsByAdapter(sql: string, parameters?: any[]): Promise<Record<string, any>[]>;
     /**
@@ -119,6 +134,7 @@ export declare abstract class Database<A, P> {
      * @param sql
      * @param parameters
      * @returns
+     * @throws DatabaseError データベースの処理に失敗した場合。
      */
     fetchRecords(sql: string, parameters?: any[]): Promise<Record<string, any>[]>;
     /**
@@ -126,6 +142,7 @@ export declare abstract class Database<A, P> {
      *
      * @param record 追加するレコード。
      * @param table 対象のテーブル。
+     * @throws DatabaseError データベースの処理に失敗した場合。
      */
     insert(record: Record<string, any> | RecordMap, table: string | Table<any>): Promise<void>;
     /**
@@ -135,6 +152,7 @@ export declare abstract class Database<A, P> {
      * @param table 対象のテーブル。
      * @param whereSet 更新対象を見つけるための検索条件。
      * @returns
+     * @throws DatabaseError データベースの処理に失敗した場合。
      */
     update(record: Record<string, any> | RecordMap, table: string | Table<any>, whereSet: WhereSet): Promise<number>;
     /**
@@ -142,6 +160,7 @@ export declare abstract class Database<A, P> {
      *
      * @param table
      * @returns
+     * @throws DatabaseError データベースの処理に失敗した場合。
      */
     abstract existsTable(table: string | Table<any>): Promise<boolean>;
     /**
@@ -149,28 +168,38 @@ export declare abstract class Database<A, P> {
      *
      * @param table
      * @returns
+     * @throws DatabaseError データベースの処理に失敗した場合。
      */
     abstract fetchColumns(table: string | Table<any>): Promise<string[]>;
     /**
      * トランザクションブロックを初期化する。以降の更新は全て明示的なコミットもしくはロールバックされるまで、単一のトランザクションの中で実行される。
      *
      * @param option
+     * @throws DatabaseError データベースの処理に失敗した場合。
      */
     abstract begin(option?: any): Promise<void>;
     /**
      * 現在のトランザクションをロールバックする。そのトランザクションで行われた全ての変更が廃棄される。
+     *
+     * @throws DatabaseError データベースの処理に失敗した場合。
      */
     abstract rollback(): Promise<void>;
     /**
      * 現在のトランザクションをコミットする。 そのトランザクションで行われた全ての変更が確定される。
+     *
+     * @throws DatabaseError データベースの処理に失敗した場合。
      */
     abstract commit(): Promise<void>;
     /**
      * アダプターをデータベースから切断する。
+     *
+     * @throws DatabaseError データベースの処理に失敗した場合。
      */
     protected abstract closeAdapter(): Promise<void>;
     /**
      * データベース接続を閉じる。
+     *
+     * @throws DatabaseError データベースの処理に失敗した場合。
      */
     close(): Promise<void>;
     /**

@@ -13,9 +13,9 @@ import Encrypter from "./class/Encrypter.js";
 
 import { Comparison, Comparisons } from "./class/database/Comparison.js";
 import { WhereSet, Where } from "./class/database/WhereSet.js";
-import { Database, DatabaseError, DataNotFoundError } from "./class/database/Database.js";
-import SQLite from "./class/database/sqlite/SQLite.js";
-import PostgreSQL from "./class/database/postgresql/PostgreSQL.js";
+import { Connector, DatabaseError, DataNotFoundError } from "./class/database/Connector.js";
+import { PostgreSQL } from "./class/database/PostgreSQL.js";
+import { SQLite } from "./class/database/SQLite.js";
 import Prisma from "./class/database/Prisma.js";
 
 export {
@@ -23,5 +23,9 @@ export {
     CSV, FormParser, FormParseResult,
     QRCode,
     Encrypter,
-    Comparison, Comparisons, WhereSet, Where, Database, DatabaseError, DataNotFoundError, SQLite, PostgreSQL, Prisma,
+    Comparison, Comparisons, WhereSet, Where,
+    Connector, DatabaseError, DataNotFoundError,
+    PostgreSQL,
+    SQLite,
+    Prisma,
 };
