@@ -2,6 +2,8 @@
 import pg from "pg";
 import { Connector as ParentConnector, DatabaseError } from "./Connector.js";
 import { Datetime, StringObject, Table } from "scent-typescript";
+import ParentRecordBinder from "./RecordBinder.js";
+import ParentSingleRecordBinder from "./SingleRecordBinder.js";
 /**
  * PostgreSQLデータベース関連のクラス。
  */
@@ -11,7 +13,6 @@ export declare namespace PostgreSQL {
         databaseName: string;
         user: string;
         password: string;
-        maximumNumberOfConnections: number;
         portNumber?: number;
         connectionTimeoutMilliseconds?: number;
     };
@@ -26,10 +27,13 @@ export declare namespace PostgreSQL {
          */
         constructor(connectionParameters: ConnectionParameters);
         private static pools;
+        private static maximumNumberOfConnections;
         /**
-         * コネクションプールを開始する。
+         * 許容する最大接続数を指定してコネクションプールを開始する。
+         *
+         * @param maximumNumberOfConnections
          */
-        static poolStart(): void;
+        static poolStart(maximumNumberOfConnections: number): void;
         /**
          * コネクションプールを終了する。
          *
@@ -93,6 +97,18 @@ export declare namespace PostgreSQL {
         commit(): Promise<void>;
         protected closeAdapter(): Promise<void>;
         protected createErrorFromInnerError(error: pg.DatabaseError): DatabaseError;
+    }
+    /**
+     * データベースのレコードとオブジェクトをバインドするための抽象クラス。
+     */
+    export abstract class RecordBinder extends ParentRecordBinder<Connector> {
+        protected fetchRecordsForEdit(orderByColumnsForEdit: string[]): Promise<Record<string, any>[]>;
+    }
+    /**
+     * データベースのレコードとオブジェクトをバインドするための抽象クラス。
+     */
+    export abstract class SingleRecordBinder extends ParentSingleRecordBinder<Connector> {
+        protected fetchRecordForEdit(): Promise<Record<string, any>>;
     }
     export {};
 }

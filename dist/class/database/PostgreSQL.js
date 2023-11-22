@@ -1,7 +1,8 @@
-// import { Pool, PoolClient, DatabaseError as InnerError } from "pg";
 import pg from "pg";
 import { DataNotFoundError, Connector as ParentConnector, DatabaseError } from "./Connector.js";
 import { Datetime, StringObject, Table } from "scent-typescript";
+import ParentRecordBinder from "./RecordBinder.js";
+import ParentSingleRecordBinder from "./SingleRecordBinder.js";
 /**
  * PostgreSQLデータベース関連のクラス。
  */
@@ -21,10 +22,16 @@ export var PostgreSQL;
             this._poolClient = null;
         }
         /**
-         * コネクションプールを開始する。
+         * 許容する最大接続数を指定してコネクションプールを開始する。
+         *
+         * @param maximumNumberOfConnections
          */
-        static poolStart() {
+        static poolStart(maximumNumberOfConnections) {
+            if (this.pools !== null) {
+                return;
+            }
             this.pools = new Map();
+            this.maximumNumberOfConnections = maximumNumberOfConnections;
         }
         /**
          * コネクションプールを終了する。
@@ -41,6 +48,7 @@ export var PostgreSQL;
                         throw new DatabaseError(error.message);
                     }
                 }
+                this.pools = null;
             }
         }
         /**
@@ -69,7 +77,7 @@ export var PostgreSQL;
                         password: connectionParameters.password,
                         port: connectionParameters.portNumber,
                         connectionTimeoutMillis: connectionParameters.connectionTimeoutMilliseconds,
-                        max: connectionParameters.maximumNumberOfConnections,
+                        max: Connector.maximumNumberOfConnections,
                     });
                     Connector.pools.set(jsonOfParameters, pool);
                 }
@@ -250,5 +258,61 @@ export var PostgreSQL;
         }
     }
     Connector.pools = null;
+    Connector.maximumNumberOfConnections = 4;
     PostgreSQL.Connector = Connector;
+    /**
+     * データベースのレコードとオブジェクトをバインドするための抽象クラス。
+     */
+    class RecordBinder extends ParentRecordBinder {
+        async fetchRecordsForEdit(orderByColumnsForEdit) {
+            if (this.connector === null) {
+                throw new DatabaseError("Connector instance is missing.");
+            }
+            const orderBy = new StringObject();
+            if (orderByColumnsForEdit.length > 0) {
+                orderBy.append(" ORDER BY ");
+                for (const orderByColumn of orderByColumnsForEdit) {
+                    if (orderBy.length() > 10) {
+                        orderBy.append(", ");
+                    }
+                    orderBy.append(orderByColumn);
+                }
+            }
+            const sql = new StringObject("SELECT * FROM ");
+            sql.append(this.getTable().physicalName);
+            if (this.whereSet === null) {
+                sql.append(orderBy);
+                sql.append(";");
+                this.connector.lockTableAsReadonly(this.getTable());
+                return await this.connector.fetchRecords(sql.toString());
+            }
+            sql.append(" WHERE ");
+            sql.append(this.whereSet.buildPlaceholderClause());
+            sql.append(" ");
+            sql.append(orderBy);
+            sql.append(" FOR UPDATE NOWAIT;");
+            return this.connector.fetchRecords(sql.toString(), this.whereSet.buildParameters());
+        }
+    }
+    PostgreSQL.RecordBinder = RecordBinder;
+    /**
+     * データベースのレコードとオブジェクトをバインドするための抽象クラス。
+     */
+    class SingleRecordBinder extends ParentSingleRecordBinder {
+        async fetchRecordForEdit() {
+            if (this.connector === null) {
+                throw new DatabaseError("Connector instance is missing.");
+            }
+            if (this.whereSet === null) {
+                throw new DatabaseError("Search condition for editing is missing.");
+            }
+            const sql = new StringObject("SELECT * FROM ");
+            sql.append(this.getTable().physicalName);
+            sql.append(" WHERE ");
+            sql.append(this.whereSet.buildPlaceholderClause());
+            sql.append(" FOR UPDATE NOWAIT;");
+            return await this.connector.fetchRecord(sql.toString(), this.whereSet.buildParameters());
+        }
+    }
+    PostgreSQL.SingleRecordBinder = SingleRecordBinder;
 })(PostgreSQL || (PostgreSQL = {}));

@@ -1,6 +1,8 @@
-import { Datetime, StringObject, Table } from "scent-typescript";
-import { DataNotFoundError, Connector as ParentConnector, DatabaseError } from "./Connector.js";
 import sqlite3 from "sqlite3";
+import { DataNotFoundError, Connector as ParentConnector, DatabaseError } from "./Connector.js";
+import { Datetime, StringObject, Table } from "scent-typescript";
+import ParentRecordBinder from "./RecordBinder.js";
+import ParentSingleRecordBinder from "./SingleRecordBinder.js";
 /**
  * SQLiteデータベース関連のクラス。
  */
@@ -17,6 +19,7 @@ export var SQLite;
          */
         constructor(connectionParameters) {
             super(connectionParameters);
+            this._isolationLevel = null;
         }
         createAdapter(connectionParameters) {
             return new Promise((resolve, reject) => {
@@ -161,21 +164,35 @@ export var SQLite;
         fetchLastInsertedRecordID() {
             return this.fetchField("SELECT LAST_INSERT_ROWID();");
         }
-        async begin(mode) {
+        /**
+         * トランザクションの分離レベル。
+         */
+        get isolationLevel() {
+            return this._isolationLevel;
+        }
+        /**
+         * @param isolationLevel
+         * @throws DatabaseError データベースの処理に失敗した場合。
+         */
+        async begin(isolationLevel) {
+            this._isolationLevel = isolationLevel;
             const sql = new StringObject("BEGIN ");
-            sql.append(mode);
+            sql.append(isolationLevel);
             sql.append(";");
             await this.execute(sql.upper().toString());
         }
         async rollback() {
+            this._isolationLevel = null;
             await this.execute("ROLLBACK;");
         }
         async commit() {
+            this._isolationLevel = null;
             await this.execute("COMMIT;");
         }
         closeAdapter() {
             return new Promise((resolve, reject) => {
                 if (this.adapter === null) {
+                    this._isolationLevel = null;
                     resolve();
                     return;
                 }
@@ -184,6 +201,7 @@ export var SQLite;
                         reject(error);
                     }
                     else {
+                        this._isolationLevel = null;
                         resolve();
                     }
                 });
@@ -194,4 +212,229 @@ export var SQLite;
         }
     }
     SQLite.Connector = Connector;
+    /**
+     * データベースのレコードとオブジェクトをバインドするための抽象クラス。
+     */
+    class RecordBinder extends ParentRecordBinder {
+        constructor() {
+            super(...arguments);
+            this.isEditing = false;
+        }
+        async fetchRecordsForEdit(orderByColumnsForEdit) {
+            if (this.connector === null) {
+                throw new DatabaseError("Connector instance is missing.");
+            }
+            const orderBy = new StringObject();
+            if (orderByColumnsForEdit.length > 0) {
+                orderBy.append(" ORDER BY ");
+                for (const orderByColumn of orderByColumnsForEdit) {
+                    if (orderBy.length() > 10) {
+                        orderBy.append(", ");
+                    }
+                    orderBy.append(orderByColumn);
+                }
+            }
+            const sql = new StringObject("SELECT * FROM ");
+            sql.append(this.getTable().physicalName);
+            if (this.whereSet === null) {
+                sql.append(orderBy);
+                sql.append(";");
+                return await this.connector.fetchRecords(sql.toString());
+            }
+            sql.append(" WHERE ");
+            sql.append(this.whereSet.buildPlaceholderClause());
+            sql.append(" ");
+            sql.append(orderBy);
+            sql.append(";");
+            return this.connector.fetchRecords(sql.toString(), this.whereSet.buildParameters());
+        }
+        // TODO: editByConnector
+        async edit() {
+            if (this.isEditing) {
+                return;
+            }
+            await super.edit();
+            const connector = this.createConnectorForEditing();
+            try {
+                await connector.connect();
+                await connector.begin("exclusive");
+                if (await this.isEditingByAnother(connector)) {
+                    throw new DatabaseError("The record is being edited by another.");
+                }
+                await this.updateToEditing(connector);
+                await connector.commit();
+                this.isEditing = true;
+            }
+            finally {
+                try {
+                    await connector.close();
+                }
+                catch (error) {
+                    // nop
+                }
+            }
+        }
+        /**
+         * バインドされているレコードを破棄して編集終了処理を実行する。
+         *
+         * @throws DatabaseError データベースの処理に失敗した場合。
+         */
+        async close() {
+            if (this.isEditing) {
+                const connector = this.createConnectorForEditing();
+                try {
+                    await connector.connect();
+                    await this.updateToEditingFinish(connector);
+                }
+                finally {
+                    await connector.close();
+                }
+                this.isEditing = true;
+            }
+            this.records = [];
+        }
+        /**
+         * バインドしようとしているレコードの編集中を強制的に解除するメソッド。
+         *
+         * @throws DatabaseError データベースの処理に失敗した場合。
+         */
+        async forciblyClose() {
+            const connector = this.createConnectorForEditing();
+            try {
+                await connector.connect();
+                await this.updateToEditingFinish(connector);
+            }
+            finally {
+                await connector.close();
+            }
+            this.records = [];
+        }
+    }
+    SQLite.RecordBinder = RecordBinder;
+    /**
+     * データベースのレコードとオブジェクトをバインドするための抽象クラス。
+     */
+    class SingleRecordBinder extends ParentSingleRecordBinder {
+        constructor() {
+            super(...arguments);
+            this.isEditing = false;
+        }
+        async fetchRecordForEdit() {
+            if (this.connector === null) {
+                throw new DatabaseError("Connector instance is missing.");
+            }
+            if (this.whereSet === null) {
+                throw new DatabaseError("Search condition for editing is missing.");
+            }
+            const sql = new StringObject("SELECT * FROM ");
+            sql.append(this.getTable().physicalName);
+            sql.append(" WHERE ");
+            sql.append(this.whereSet.buildPlaceholderClause());
+            sql.append(";");
+            return await this.connector.fetchRecord(sql.toString(), this.whereSet.buildParameters());
+        }
+        async edit() {
+            if (this.isEditing) {
+                return;
+            }
+            await super.edit();
+            const connector = this.createConnectorForEditing();
+            try {
+                await connector.connect();
+                await connector.begin("exclusive");
+                if (await this.isEditingByAnother(connector)) {
+                    throw new DatabaseError("The record is being edited by another.");
+                }
+                await this.updateToEditing(connector);
+                await connector.commit();
+                this.isEditing = true;
+            }
+            finally {
+                try {
+                    await connector.close();
+                }
+                catch (error) {
+                    // nop
+                }
+            }
+        }
+        /**
+         * 指定されたコネクターを使用してデータベースのレコードをこのインスタンスにバインドする。
+         *
+         * @param connector 分離レベル"exclusive"でトランザクションが開始されたコネクター。
+         * @throws DatabaseError データベースの処理に失敗した場合。
+         */
+        async editByConnector(connector) {
+            if (this.isEditing) {
+                return;
+            }
+            await super.edit();
+            if (await this.isEditingByAnother(connector)) {
+                throw new DatabaseError("The record is being edited by another.");
+            }
+            await this.updateToEditing(connector);
+            this.isEditing = true;
+        }
+        /**
+         * バインドされているレコードを破棄して編集終了処理を実行する。
+         *
+         * @throws DatabaseError データベースの処理に失敗した場合。
+         */
+        async close() {
+            if (this.isEditing) {
+                const connector = this.createConnectorForEditing();
+                try {
+                    await connector.connect();
+                    await this.updateToEditingFinish(connector);
+                }
+                finally {
+                    await connector.close();
+                }
+                this.isEditing = false;
+            }
+            this.record = this.getTable().createRecord();
+        }
+        /**
+         * 指定されたコネクターを使用して編集終了処理を実行してバインドされているレコードを破棄する。
+         *
+         * @param connector 接続済みのコネクター。
+         * @throws DatabaseError データベースの処理に失敗した場合。
+         */
+        async closeByConnector(connector) {
+            if (this.isEditing) {
+                await this.updateToEditingFinish(connector);
+                this.isEditing = false;
+            }
+            this.record = this.getTable().createRecord();
+        }
+        /**
+         * バインドしようとしているレコードの編集中を強制的に解除するメソッド。
+         *
+         * @throws DatabaseError データベースの処理に失敗した場合。
+         */
+        async forciblyClose() {
+            const connector = this.createConnectorForEditing();
+            try {
+                await connector.connect();
+                await this.updateToEditingFinish(connector);
+                this.isEditing = false;
+            }
+            finally {
+                await connector.close();
+            }
+            this.record = this.getTable().createRecord();
+        }
+        /**
+         * 指定されたコネクターを使用してバインドしようとしているレコードの編集中を強制的に解除するメソッド。
+         *
+         * @param connector 接続済みのコネクター。
+         * @throws DatabaseError データベースの処理に失敗した場合。
+         */
+        async forciblyCloseByConnector(connector) {
+            await this.updateToEditingFinish(connector);
+            this.isEditing = false;
+            this.record = this.getTable().createRecord();
+        }
+    }
+    SQLite.SingleRecordBinder = SingleRecordBinder;
 })(SQLite || (SQLite = {}));

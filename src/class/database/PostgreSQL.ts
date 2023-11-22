@@ -1,8 +1,8 @@
-// import { Pool, PoolClient, DatabaseError as InnerError } from "pg";
 import pg from "pg";
 import { DataNotFoundError, Connector as ParentConnector, DatabaseError } from "./Connector.js";
-import ParentRecordBinder from "./RecordBinder.js";
 import { Datetime, StringObject, Table } from "scent-typescript";
+import ParentRecordBinder from "./RecordBinder.js";
+import ParentSingleRecordBinder from "./SingleRecordBinder.js";
 
 /**
  * PostgreSQLデータベース関連のクラス。
@@ -14,7 +14,6 @@ export namespace PostgreSQL {
         databaseName: string,
         user: string,
         password: string,
-        maximumNumberOfConnections: number,
         portNumber?: number,
         connectionTimeoutMilliseconds?: number,
     }
@@ -34,12 +33,20 @@ export namespace PostgreSQL {
         }
     
         private static pools: Map<string, pg.Pool> | null = null;
+
+        private static maximumNumberOfConnections: number = 4;
     
         /**
-         * コネクションプールを開始する。
+         * 許容する最大接続数を指定してコネクションプールを開始する。
+         * 
+         * @param maximumNumberOfConnections 
          */
-        public static poolStart(): void {
+        public static poolStart(maximumNumberOfConnections: number): void {
+            if (this.pools !== null) {
+                return;
+            }
             this.pools = new Map();
+            this.maximumNumberOfConnections = maximumNumberOfConnections;
         }
     
         /**
@@ -56,6 +63,7 @@ export namespace PostgreSQL {
                         throw new DatabaseError(error.message);
                     }
                 }
+                this.pools = null;
             }
         }
     
@@ -87,7 +95,7 @@ export namespace PostgreSQL {
                         password: connectionParameters.password,
                         port: connectionParameters.portNumber,
                         connectionTimeoutMillis: connectionParameters.connectionTimeoutMilliseconds,
-                        max: connectionParameters.maximumNumberOfConnections,
+                        max: Connector.maximumNumberOfConnections,
                     });
                     Connector.pools.set(jsonOfParameters, pool);
                 }
@@ -276,6 +284,63 @@ export namespace PostgreSQL {
     
         protected createErrorFromInnerError(error: pg.DatabaseError): DatabaseError {
             return new DatabaseError(error.message, error.code);
+        }
+    }
+
+    /**
+     * データベースのレコードとオブジェクトをバインドするための抽象クラス。
+     */
+    export abstract class RecordBinder extends ParentRecordBinder<Connector> {
+
+        protected async fetchRecordsForEdit(orderByColumnsForEdit: string[]): Promise<Record<string, any>[]> {
+            if (this.connector === null) {
+                throw new DatabaseError("Connector instance is missing.");
+            }
+            const orderBy = new StringObject();
+            if (orderByColumnsForEdit.length > 0) {
+                orderBy.append(" ORDER BY ");
+                for (const orderByColumn of orderByColumnsForEdit) {
+                    if (orderBy.length() > 10) {
+                        orderBy.append(", ");
+                    }
+                    orderBy.append(orderByColumn);
+                }
+            }
+            const sql = new StringObject("SELECT * FROM ");
+            sql.append(this.getTable().physicalName);
+            if (this.whereSet === null) {
+                sql.append(orderBy);
+                sql.append(";");
+                this.connector.lockTableAsReadonly(this.getTable());
+                return await this.connector.fetchRecords(sql.toString());
+            }
+            sql.append(" WHERE ");
+            sql.append(this.whereSet.buildPlaceholderClause());
+            sql.append(" ");
+            sql.append(orderBy);
+            sql.append(" FOR UPDATE NOWAIT;");
+            return this.connector.fetchRecords(sql.toString(), this.whereSet.buildParameters());
+        }
+    }
+
+    /**
+     * データベースのレコードとオブジェクトをバインドするための抽象クラス。
+     */
+    export abstract class SingleRecordBinder extends ParentSingleRecordBinder<Connector> {
+
+        protected async fetchRecordForEdit(): Promise<Record<string, any>> {
+            if (this.connector === null) {
+                throw new DatabaseError("Connector instance is missing.");
+            }
+            if (this.whereSet === null) {
+                throw new DatabaseError("Search condition for editing is missing.");
+            }
+            const sql = new StringObject("SELECT * FROM ");
+            sql.append(this.getTable().physicalName);
+            sql.append(" WHERE ");
+            sql.append(this.whereSet.buildPlaceholderClause());
+            sql.append(" FOR UPDATE NOWAIT;");
+            return await this.connector.fetchRecord(sql.toString(), this.whereSet.buildParameters());
         }
     }
 }
