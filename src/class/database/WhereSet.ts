@@ -323,7 +323,6 @@ export class Where {
             result.append("NOT ");
         }
         result.append(this.column).append(" ");
-        result.append(this.comparison.physicalName);
         switch (this.comparison) {
             case Comparisons.between:
                 result.append(this.comparison.physicalName);
