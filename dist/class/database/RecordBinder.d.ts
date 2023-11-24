@@ -90,11 +90,23 @@ export default abstract class RecordBinder<C extends Connector<any, any>> {
      */
     exists(): Promise<boolean>;
     /**
+     * 指定されたレコードとカラムに対応する値の妥当性を確認する。
+     *
+     * @throws Error
+     */
+    abstract valueValidate(record: RecordMap, column: Column): Promise<void>;
+    /**
      * バインドされているレコードが有効か検証する。
      */
-    abstract validate(): Promise<void>;
+    validate(): Promise<void>;
+    /**
+     * 指定されたレコードとカラムに対応する値を標準化して返す。undefinedを返す場合は値に対して何もしない。
+     *
+     * @returns
+     */
+    abstract valueNormalize(record: RecordMap, column: Column): Promise<any>;
     /**
      * バインドされているレコードの値を標準化する。
      */
-    abstract normalize(): Promise<void>;
+    normalize(): Promise<void>;
 }

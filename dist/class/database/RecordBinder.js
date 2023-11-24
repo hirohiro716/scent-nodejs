@@ -1,5 +1,6 @@
 import { StringObject } from "scent-typescript";
 import { DatabaseError } from "./Connector.js";
+import { RecordMapValidationError } from "./RecordMapValidationError.js";
 /**
  * データベースのレコードとオブジェクトをバインドするための抽象クラス。
  *
@@ -31,7 +32,7 @@ export default class RecordBinder {
      * @returns
      */
     getColumns() {
-        return this.getTable().columns;
+        return Object.values(this.getTable().columns);
     }
     /**
      * バインドするレコードを特定するための検索条件。
@@ -111,5 +112,37 @@ export default class RecordBinder {
         sql.append(";");
         const numberOfRecords = await this._connector.fetchField(sql.toString(), this._whereSet.buildParameters());
         return (numberOfRecords > 0);
+    }
+    /**
+     * バインドされているレコードが有効か検証する。
+     */
+    async validate() {
+        for (const record of this.records) {
+            const errors = new Map();
+            for (const column of this.getColumns()) {
+                try {
+                    await this.valueValidate(record, column);
+                }
+                catch (error) {
+                    errors.set(column, error.message);
+                }
+            }
+            if (errors.size > 0) {
+                throw new RecordMapValidationError(record, errors);
+            }
+        }
+    }
+    /**
+     * バインドされているレコードの値を標準化する。
+     */
+    async normalize() {
+        for (const record of this.records) {
+            for (const column of this.getColumns()) {
+                const value = await this.valueNormalize(record, column);
+                if (typeof value !== "undefined") {
+                    record.set(column, value);
+                }
+            }
+        }
     }
 }

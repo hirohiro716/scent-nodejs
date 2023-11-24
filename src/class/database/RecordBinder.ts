@@ -1,6 +1,7 @@
 import { Column, RecordMap, StringObject, Table } from "scent-typescript";
 import { Connector, DatabaseError } from "./Connector.js";
 import { WhereSet } from "./WhereSet.js";
+import { RecordMapValidationError } from "./RecordMapValidationError.js";
 
 /**
  * データベースのレコードとオブジェクトをバインドするための抽象クラス。
@@ -44,7 +45,7 @@ export default abstract class RecordBinder<C extends Connector<any, any>> {
      * @returns 
      */
     public getColumns(): Column[] {
-        return this.getTable().columns;
+        return Object.values(this.getTable().columns);
     }
 
     /**
@@ -168,12 +169,49 @@ export default abstract class RecordBinder<C extends Connector<any, any>> {
     }
 
     /**
+     * 指定されたレコードとカラムに対応する値の妥当性を確認する。
+     * 
+     * @throws Error
+     */
+    public abstract valueValidate(record: RecordMap, column: Column): Promise<void>;
+
+    /**
      * バインドされているレコードが有効か検証する。
      */
-    public abstract validate(): Promise<void>;
+    public async validate(): Promise<void> {
+        for (const record of this.records) {
+            const errors: Map<Column, string> = new Map();
+            for (const column of this.getColumns()) {
+                try {
+                    await this.valueValidate(record, column);
+                } catch (error: any) {
+                    errors.set(column, error.message);
+                }
+            }
+            if (errors.size > 0) {
+                throw new RecordMapValidationError(record, errors);
+            }
+        }
+    }
+
+    /**
+     * 指定されたレコードとカラムに対応する値を標準化して返す。undefinedを返す場合は値に対して何もしない。
+     * 
+     * @returns
+     */
+    public abstract valueNormalize(record: RecordMap, column: Column): Promise<any>;
 
     /**
      * バインドされているレコードの値を標準化する。
      */
-    public abstract normalize(): Promise<void>;
+    public async normalize(): Promise<void> {
+        for (const record of this.records) {
+            for (const column of this.getColumns()) {
+                const value = await this.valueNormalize(record, column);
+                if (typeof value !== "undefined") {
+                    record.set(column, value);
+                }
+            }
+        }
+    }
 }
