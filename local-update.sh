@@ -9,4 +9,4 @@ cd $scriptDirectory
 npx tsc
 cd $currentDirectory
 cp -r $scriptDirectory/dist/ $currentDirectory/node_modules/scent-nodejs
-
+rm -r $currentDirectory/node_modules/.vite/
