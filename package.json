@@ -5,27 +5,29 @@
     "main": "dist/index.js",
     "types": "dist/index.d.ts",
     "scripts": {
-        "test": "node dist/test.js",
+        "test": "tsc; node dist/test.js",
         "build": "rm -rf dist/; tsc"
     },
     "dependencies": {
-        "@types/formidable": "^3.4.0",
         "formidable": "^3.5.0",
         "fs": "^0.0.1-security",
         "path": "^0.12.7",
-        "@prisma/client": "^4.16.2",
-        "@types/pg": "^8.10.7",
         "pg": "^8.11.3",
-        "@types/sqlite3": "^3.1.10",
         "sqlite3": "^5.1.6",
         "sharp": "^0.32.4",
-        "@types/qrcode": "^1.5.4",
         "qrcode": "^1.5.3",
         "jsqr": "^1.4.0",
+        "nodemailer": "^6.9.13",
         "scent-typescript": "git+https://github.com/hirohiro716/scent-typescript.git"
     },
     "devDependencies": {
         "@types/node": "20.1.4",
+        "@types/formidable": "^3.4.0",
+        "@prisma/client": "^4.16.2",
+        "@types/pg": "^8.10.7",
+        "@types/sqlite3": "^3.1.10",
+        "@types/qrcode": "^1.5.4",
+        "@types/nodemailer": "^6.4.15",
         "eslint": "8.40.0",
         "typescript": "^5.0.4"
     },
