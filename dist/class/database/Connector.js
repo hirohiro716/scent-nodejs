@@ -1,31 +1,41 @@
 import { Column, RecordMap, StringObject, Table } from "scent-typescript";
+import DatabaseError from "./DatabaseError.js";
+import DataNotFoundError from "./DataNotFoundError.js";
 /**
  * データベースに接続するための抽象クラス。
  *
- * @template A データベースに接続するためのアダプターの型。
- * @template P アダプターのデータベース接続に必要なパラメーターの型。
+ * @template D デリゲートの型。
+ * @template C データベースに接続するためのパラメーターの型。
  */
-export class Connector {
+export default class Connector {
     /**
-     * コンストラクタ。データベース接続アダプターの接続に使用するパラメーターを指定する。
+     * コンストラクタ。データベース接続に使用するパラメーターを指定する。
      *
      * @param connectionParameters
      */
     constructor(connectionParameters) {
-        this._adapter = null;
+        this._delegate = null;
         this._statementTimeoutMilliseconds = 0;
         this.connectionParameters = connectionParameters;
     }
     /**
-     * データベースに接続するためのアダプターのインスタンス。
+     * デリゲートのインスタンスが存在する場合はtrueを返す。
+     *
+     * @returns
+     */
+    existsDelegate() {
+        return this._delegate !== null;
+    }
+    /**
+     * デリゲートのインスタンス。
      *
      * @throws DatabaseError データベースの処理に失敗した場合。
      */
-    get adapter() {
-        if (this._adapter === null) {
+    get delegate() {
+        if (this._delegate === null) {
             throw new DatabaseError("Not connected to database.");
         }
-        return this._adapter;
+        return this._delegate;
     }
     /**
      * データベースに接続する。
@@ -33,11 +43,29 @@ export class Connector {
      * @throws DatabaseError データベースの処理に失敗した場合。
      */
     async connect() {
+        await this.releaseDelegateToPool();
+        this._delegate = await this.borrowDelegateFromPool();
+    }
+    /**
+     * データベース接続を解放する。
+     *
+     * @throws DatabaseError データベースの処理に失敗した場合。
+     */
+    async release() {
         try {
-            this._adapter = await this.createAdapter(this.connectionParameters);
-            await this.connectAdapter(this._adapter);
+            if (await this.isTransactionBegun()) {
+                await this.rollback();
+            }
         }
         catch (error) {
+        }
+        try {
+            await this.releaseDelegateToPool();
+        }
+        catch (error) {
+            if (this.errorOccurred) {
+                return;
+            }
             if (error instanceof DatabaseError) {
                 throw error;
             }
@@ -63,14 +91,14 @@ export class Connector {
      */
     async execute(sql, parameters) {
         try {
-            await this.setStatementTimeoutToAdapter(this._statementTimeoutMilliseconds);
+            await this.setStatementTimeoutToDelegate(this._statementTimeoutMilliseconds);
             const bindParameters = [];
             if (parameters) {
                 for (const value of parameters) {
                     bindParameters.push(this.createBindParameterFromValue(value));
                 }
             }
-            return await this.executeByAdapter(sql, bindParameters);
+            return await this.executeByDelegate(sql, bindParameters);
         }
         catch (error) {
             if (error instanceof DatabaseError) {
@@ -89,14 +117,14 @@ export class Connector {
      */
     async fetchField(sql, parameters) {
         try {
-            await this.setStatementTimeoutToAdapter(this._statementTimeoutMilliseconds);
+            await this.setStatementTimeoutToDelegate(this._statementTimeoutMilliseconds);
             const bindParameters = [];
             if (parameters) {
                 for (const value of parameters) {
                     bindParameters.push(this.createBindParameterFromValue(value));
                 }
             }
-            return await this.fetchFieldByAdapter(sql, bindParameters);
+            return await this.fetchFieldByDelegate(sql, bindParameters);
         }
         catch (error) {
             if (error instanceof DatabaseError) {
@@ -115,14 +143,14 @@ export class Connector {
      */
     async fetchRecord(sql, parameters) {
         try {
-            await this.setStatementTimeoutToAdapter(this._statementTimeoutMilliseconds);
+            await this.setStatementTimeoutToDelegate(this._statementTimeoutMilliseconds);
             const bindParameters = [];
             if (parameters) {
                 for (const value of parameters) {
                     bindParameters.push(this.createBindParameterFromValue(value));
                 }
             }
-            return await this.fetchRecordByAdapter(sql, bindParameters);
+            return await this.fetchRecordByDelegate(sql, bindParameters);
         }
         catch (error) {
             if (error instanceof DatabaseError) {
@@ -141,14 +169,14 @@ export class Connector {
      */
     async fetchRecords(sql, parameters) {
         try {
-            await this.setStatementTimeoutToAdapter(this._statementTimeoutMilliseconds);
+            await this.setStatementTimeoutToDelegate(this._statementTimeoutMilliseconds);
             const bindParameters = [];
             if (parameters) {
                 for (const value of parameters) {
                     bindParameters.push(this.createBindParameterFromValue(value));
                 }
             }
-            return await this.fetchRecordsByAdapter(sql, bindParameters);
+            return await this.fetchRecordsByDelegate(sql, bindParameters);
         }
         catch (error) {
             if (error instanceof DatabaseError) {
@@ -236,22 +264,6 @@ export class Connector {
         return result;
     }
     /**
-     * データベース接続を閉じる。
-     *
-     * @throws DatabaseError データベースの処理に失敗した場合。
-     */
-    async close() {
-        try {
-            this.closeAdapter();
-        }
-        catch (error) {
-            if (error instanceof DatabaseError) {
-                throw error;
-            }
-            throw this.createErrorFromInnerError(error);
-        }
-    }
-    /**
      * Mapインスタンスのキーと値の関連付けを利用してSQLのCASE句を作成する。
      * @example
      * const map = new Map<number, string>();
@@ -298,36 +310,5 @@ export class Connector {
      */
     static makeCaseClauseFromObject(column, object) {
         return this.makeCaseClauseFromMap(column, new Map(Object.entries(object)));
-    }
-}
-/**
- * データベースへの処理に失敗した場合に発生するエラーのクラス。
- */
-export class DatabaseError extends Error {
-    /**
-     * コンストラクタ。エラーメッセージとエラーコードを指定する。
-     *
-     * @param messages
-     * @param code
-     */
-    constructor(message, code) {
-        if (typeof message === "undefined") {
-            super("Unknown database error.");
-        }
-        else {
-            super(message);
-        }
-        this.code = code;
-    }
-}
-/**
- * データが存在しない場合に発生するエラーのクラス。
- */
-export class DataNotFoundError extends DatabaseError {
-    /**
-     * コンストラクタ。
-     */
-    constructor() {
-        super("Data does not exist.");
     }
 }

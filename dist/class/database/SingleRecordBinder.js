@@ -1,6 +1,7 @@
 import { StringObject } from "scent-typescript";
-import { DataNotFoundError, DatabaseError } from "./Connector.js";
 import RecordBinder from "./RecordBinder.js";
+import DatabaseError from "./DatabaseError.js";
+import DataNotFoundError from "./DataNotFoundError.js";
 /**
  * データベースの単一レコードとオブジェクトをバインドするための抽象クラス。
  *

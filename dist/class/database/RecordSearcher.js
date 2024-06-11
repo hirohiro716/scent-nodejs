@@ -1,5 +1,5 @@
 import { StringObject } from "scent-typescript";
-import { DatabaseError } from "./Connector.js";
+import DatabaseError from "./DatabaseError.js";
 /**
  * データベースのレコードを検索するための抽象クラス。
  *

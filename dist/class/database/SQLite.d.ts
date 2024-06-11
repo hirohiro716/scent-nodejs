@@ -1,10 +1,12 @@
 /// <reference types="node" />
 import sqlite3 from "sqlite3";
-import { Connector as ParentConnector, DatabaseError } from "./Connector.js";
+import { default as ParentPool } from "./Pool.js";
+import { default as ParentConnector } from "./Connector.js";
 import File from "./../filesystem/File.js";
 import { Datetime, StringObject, Table } from "scent-typescript";
 import ParentRecordBinder from "./RecordBinder.js";
 import ParentSingleRecordBinder from "./SingleRecordBinder.js";
+import DatabaseError from "./DatabaseError.js";
 /**
  * SQLiteデータベース関連のクラス。
  */
@@ -13,7 +15,31 @@ export declare namespace SQLite {
         databaseFile: File;
     };
     /**
-     * SQLiteに接続するクラス。
+     * SQLiteへの接続をプールするクラス。
+     */
+    export class Pool extends ParentPool<void, ConnectionParameters, sqlite3.Database> {
+        /**
+         * コンストラクタ。接続に使用するパラメーターを指定する。
+         *
+         * @param connectionParameters
+         */
+        constructor(connectionParameters: ConnectionParameters);
+        private maximumNumberOfConnections;
+        private borrowingStatus;
+        private connectorDelegates;
+        borrowConnectorDelegate(): Promise<sqlite3.Database>;
+        releaseConnectorDelegate(connectorDelegate: sqlite3.Database, errorOccurred: boolean): Promise<void>;
+        /**
+         * 指定されたコネクターのデリゲートインスタンスを閉じる。
+         *
+         * @param connectorDelegate
+         */
+        private closeConnectorDelegate;
+        end(): Promise<void>;
+        protected createErrorFromInnerError(error: any): DatabaseError;
+    }
+    /**
+     * SQLiteに接続するクラス。接続する前にコネクションプールを開始する必要がある。
      */
     export class Connector extends ParentConnector<sqlite3.Database, ConnectionParameters> {
         /**
@@ -22,14 +48,16 @@ export declare namespace SQLite {
          * @param connectionParameters
          */
         constructor(connectionParameters: ConnectionParameters);
-        protected createAdapter(connectionParameters: ConnectionParameters): Promise<sqlite3.Database>;
-        protected connectAdapter(adapter: sqlite3.Database): Promise<void>;
-        protected setStatementTimeoutToAdapter(milliseconds: number): Promise<void>;
+        private _errorOccurred;
+        get errorOccurred(): boolean;
+        protected borrowDelegateFromPool(): Promise<sqlite3.Database>;
+        protected releaseDelegateToPool(): Promise<void>;
+        protected setStatementTimeoutToDelegate(milliseconds: number): Promise<void>;
         protected createBindParameterFromValue(value: string | StringObject | number | boolean | Date | Datetime | Buffer): string | number | boolean | Buffer;
-        protected executeByAdapter(sql: string, parameters?: any[]): Promise<number>;
-        protected fetchFieldByAdapter(sql: string, parameters?: any[]): Promise<any>;
-        protected fetchRecordByAdapter(sql: string, parameters?: any[]): Promise<Record<string, any>>;
-        protected fetchRecordsByAdapter(sql: string, parameters?: any[]): Promise<Record<string, any>[]>;
+        protected executeByDelegate(sql: string, parameters?: any[]): Promise<number>;
+        protected fetchFieldByDelegate(sql: string, parameters?: any[]): Promise<any>;
+        protected fetchRecordByDelegate(sql: string, parameters?: any[]): Promise<Record<string, any>>;
+        protected fetchRecordsByDelegate(sql: string, parameters?: any[]): Promise<Record<string, any>[]>;
         existsTable(table: string | Table<any>): Promise<boolean>;
         fetchColumns(table: string | Table<any>): Promise<string[]>;
         /**
@@ -44,6 +72,8 @@ export declare namespace SQLite {
          * @returns
          */
         fetchLastInsertedRecordID(): Promise<number>;
+        private _isTransactionBegun;
+        isTransactionBegun(): Promise<boolean>;
         private _isolationLevel;
         /**
          * トランザクションの分離レベル。
@@ -56,7 +86,6 @@ export declare namespace SQLite {
         begin(isolationLevel: "deferred" | "immediate" | "exclusive"): Promise<void>;
         rollback(): Promise<void>;
         commit(): Promise<void>;
-        protected closeAdapter(): Promise<void>;
         protected createErrorFromInnerError(error: any): DatabaseError;
     }
     /**

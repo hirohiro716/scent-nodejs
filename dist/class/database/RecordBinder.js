@@ -1,6 +1,6 @@
 import { StringObject } from "scent-typescript";
-import { DatabaseError } from "./Connector.js";
 import { RecordMapValidationError } from "./RecordMapValidationError.js";
+import DatabaseError from "./DatabaseError.js";
 /**
  * データベースのレコードとオブジェクトをバインドするための抽象クラス。
  *

@@ -1,9 +1,12 @@
 import sqlite3 from "sqlite3";
-import { DataNotFoundError, Connector as ParentConnector, DatabaseError } from "./Connector.js";
+import { default as ParentPool } from "./Pool.js";
+import { default as ParentConnector } from "./Connector.js";
 import File from "./../filesystem/File.js";
 import { Datetime, StringObject, Table } from "scent-typescript";
 import ParentRecordBinder from "./RecordBinder.js";
 import ParentSingleRecordBinder from "./SingleRecordBinder.js";
+import DatabaseError from "./DatabaseError.js";
+import DataNotFoundError from "./DataNotFoundError.js";
 
 /**
  * SQLiteデータベース関連のクラス。
@@ -13,12 +16,126 @@ export namespace SQLite {
     type ConnectionParameters = {
         databaseFile: File
     }
-    
+
     /**
-     * SQLiteに接続するクラス。
+     * SQLiteへの接続をプールするクラス。
+     */
+    export class Pool extends ParentPool<void, ConnectionParameters, sqlite3.Database> {
+
+        /**
+         * コンストラクタ。接続に使用するパラメーターを指定する。
+         * 
+         * @param connectionParameters 
+         */
+        public constructor(connectionParameters: ConnectionParameters) {
+            super(undefined, connectionParameters);
+            this.maximumNumberOfConnections = Pool.maximumNumberOfConnections;
+            this.borrowingStatus = new Int32Array(this.maximumNumberOfConnections);
+        }
+
+        private maximumNumberOfConnections: number;
+
+        private borrowingStatus: Int32Array;
+
+        private connectorDelegates: (sqlite3.Database | undefined)[] = [];
+
+        public async borrowConnectorDelegate(): Promise<sqlite3.Database> {
+            let barrowedIndex = -1;
+            for (let index = 0; index < this.maximumNumberOfConnections - 1; index++) {
+                if (Atomics.compareExchange(this.borrowingStatus, index, 0, 1) === 0) {
+                    barrowedIndex = index;
+                    break;
+                }
+            }
+            if (barrowedIndex > -1) {
+                let connectorDelegate = this.connectorDelegates[barrowedIndex];
+                if (typeof connectorDelegate !== "undefined") {
+                    return connectorDelegate;
+                }
+                return new Promise<sqlite3.Database>((resolve, reject) => {
+                    const database = new sqlite3.Database(this.connectionParameters.databaseFile.getAbsolutePath(), (error: any) => {
+                        if (error) {
+                            reject(error);
+                        } else {
+                            this.connectorDelegates[barrowedIndex] = database;
+                            resolve(database);
+                        }
+                    });
+                });
+            } else {
+                return new Promise<sqlite3.Database>((resolve, reject) => {
+                    setTimeout(async () => {
+                        try {
+                            const database = await this.borrowConnectorDelegate();
+                            resolve(database);
+                        } catch (error: any) {
+                            reject(error);
+                        }
+                    }, 100);
+                });
+            }
+        }
+
+        public async releaseConnectorDelegate(connectorDelegate: sqlite3.Database, errorOccurred: boolean): Promise<void> {
+            const index = this.connectorDelegates.indexOf(connectorDelegate);
+            if (index === -1) {
+                throw new DatabaseError("Connectors that are not managed by a pool cannot be released.");
+            }
+            if (errorOccurred) {
+                connectorDelegate.close();
+                this.connectorDelegates[index] = undefined;
+            }
+            Atomics.store(this.borrowingStatus, index, 0);
+            Atomics.notify(this.borrowingStatus, index);
+        }
+
+        /**
+         * 指定されたコネクターのデリゲートインスタンスを閉じる。
+         * 
+         * @param connectorDelegate 
+         */
+        private closeConnectorDelegate(connectorDelegate: sqlite3.Database | undefined): Promise<void> {
+            return new Promise<void>((resolve, reject) => {
+                if (typeof connectorDelegate === "undefined") {
+                    resolve();
+                } else {
+                    connectorDelegate.close((error: any) => {
+                        if (error) {
+                            reject(error);
+                        } else {
+                            resolve();
+                        }
+                    });
+                }
+            });
+        }
+
+        public async end(): Promise<void> {
+            let throwLater: Error | null = null;
+            for (let index = 0; index < this.maximumNumberOfConnections - 1; index++) {
+                const connectorDelegate = this.connectorDelegates[index];
+                try {
+                    await this.closeConnectorDelegate(connectorDelegate);
+                    this.connectorDelegates[index] = undefined;
+                } catch (error: any) {
+                    throwLater = error;
+                }
+            }
+            if (throwLater !== null) {
+                throw throwLater;
+            }
+        }
+
+        protected createErrorFromInnerError(error: any): DatabaseError {
+            return new DatabaseError(error.message, error.errno);
+        }
+    }
+
+    /**
+     * SQLiteに接続するクラス。接続する前にコネクションプールを開始する必要がある。
      */
     export class Connector extends ParentConnector<sqlite3.Database, ConnectionParameters> {
-    
+
         /**
          * コンストラクタ。接続に使用するパラメーターを指定する。
          * 
@@ -27,26 +144,36 @@ export namespace SQLite {
         public constructor(connectionParameters: ConnectionParameters) {
             super(connectionParameters);
         }
-    
-        protected createAdapter(connectionParameters: ConnectionParameters): Promise<sqlite3.Database> {
-            return new Promise<sqlite3.Database>((resolve, reject) => {
-                const database = new sqlite3.Database(connectionParameters.databaseFile.getAbsolutePath(), (error: any) => {
-                    if (error) {
-                        reject(error);
-                    } else {
-                        resolve(database);
-                    }
-                });
+
+        private _errorOccurred: boolean = false;
+
+        public get errorOccurred(): boolean {
+            return this._errorOccurred;
+        }
+
+        protected async borrowDelegateFromPool(): Promise<sqlite3.Database> {
+            let pool = Pool.get(this.connectionParameters);
+            if (typeof pool === "undefined") {
+                pool = new Pool(this.connectionParameters);
+                Pool.put(this.connectionParameters, pool);
+            }
+            const delegate: sqlite3.Database = await pool.borrowConnectorDelegate();
+            delegate.addListener("error", () => {
+                this._errorOccurred = true;
             });
+            return delegate;
         }
-    
-        protected async connectAdapter(adapter: sqlite3.Database): Promise<void> {
-            // nop
+
+        protected async releaseDelegateToPool(): Promise<void> {
+            const pool = Pool.get(this.connectionParameters);
+            if (typeof pool !== "undefined" && this.existsDelegate()) {
+                pool.releaseConnectorDelegate(this.delegate, this._errorOccurred);
+            }
         }
-    
-        protected setStatementTimeoutToAdapter(milliseconds: number): Promise<void> {
+
+        protected setStatementTimeoutToDelegate(milliseconds: number): Promise<void> {
             return new Promise<void>((resolve, reject) => {
-                this.adapter.run(StringObject.join(["PRAGMA busy_timeout = ", milliseconds, ";"]).toString(), (error: any) => {
+                this.delegate.run(StringObject.join(["PRAGMA busy_timeout = ", milliseconds, ";"]).toString(), (error: any) => {
                     if (error) {
                         reject(error);
                     } else {
@@ -69,9 +196,9 @@ export namespace SQLite {
             return value;
         }
     
-        protected executeByAdapter(sql: string, parameters?: any[]): Promise<number> {
+        protected executeByDelegate(sql: string, parameters?: any[]): Promise<number> {
             return new Promise<number>((resolve, reject) => {
-                this.adapter.run(sql, parameters, (error: any) => {
+                this.delegate.run(sql, parameters, (error: any) => {
                     if (error) {
                         reject(error);
                     } else {
@@ -85,9 +212,9 @@ export namespace SQLite {
             });
         }
     
-        protected fetchFieldByAdapter(sql: string, parameters?: any[]): Promise<any> {
+        protected fetchFieldByDelegate(sql: string, parameters?: any[]): Promise<any> {
             return new Promise<any>((resolve, reject) => {
-                this.adapter.get(sql, parameters, (error: any, row: Record<string, any>) => {
+                this.delegate.get(sql, parameters, (error: any, row: Record<string, any>) => {
                     if (error) {
                         reject(error);
                     } else {
@@ -102,9 +229,9 @@ export namespace SQLite {
             });
         }
     
-        protected fetchRecordByAdapter(sql: string, parameters?: any[]): Promise<Record<string, any>> {
+        protected fetchRecordByDelegate(sql: string, parameters?: any[]): Promise<Record<string, any>> {
             return new Promise<Record<string, any>>((resolve, reject) => {
-                this.adapter.get(sql, parameters, (error: any, row: Record<string, any>) => {
+                this.delegate.get(sql, parameters, (error: any, row: Record<string, any>) => {
                     if (error) {
                         reject(error);
                     } else {
@@ -118,9 +245,9 @@ export namespace SQLite {
             });
         }
     
-        protected fetchRecordsByAdapter(sql: string, parameters?: any[]): Promise<Record<string, any>[]> {
+        protected fetchRecordsByDelegate(sql: string, parameters?: any[]): Promise<Record<string, any>[]> {
             return new Promise<Record<string, any>[]>((resolve, reject) => {
-                this.adapter.all(sql, parameters, (error: any, rows: Record<string, any>[]) => {
+                this.delegate.all(sql, parameters, (error: any, rows: Record<string, any>[]) => {
                     if (error) {
                         reject(error);
                     } else {
@@ -173,6 +300,12 @@ export namespace SQLite {
             return this.fetchField("SELECT LAST_INSERT_ROWID();");
         }
 
+        private _isTransactionBegun: boolean = false;
+
+        public async isTransactionBegun(): Promise<boolean> {
+            return this._isTransactionBegun;
+        }
+
         private _isolationLevel: "deferred" |  "immediate" | "exclusive" | null = null
 
         /**
@@ -192,34 +325,19 @@ export namespace SQLite {
             sql.append(isolationLevel);
             sql.append(";");
             await this.execute(sql.upper().toString());
+            this._isTransactionBegun = true;
         }
 
         public async rollback(): Promise<void> {
             this._isolationLevel = null;
             await this.execute("ROLLBACK;");
+            this._isTransactionBegun = false;
         }
     
         public async commit(): Promise<void> {
             this._isolationLevel = null;
             await this.execute("COMMIT;")
-        }
-    
-        protected closeAdapter(): Promise<void> {
-            return new Promise<void>((resolve, reject) => {
-                if (this.adapter === null) {
-                    this._isolationLevel = null;
-                    resolve();
-                    return;
-                }
-                this.adapter.close((error: any) => {
-                    if (error) {
-                        reject(error);
-                    } else {
-                        this._isolationLevel = null;
-                        resolve();
-                    }
-                });
-            });
+            this._isTransactionBegun = false;
         }
     
         protected createErrorFromInnerError(error: any): DatabaseError {
@@ -314,7 +432,7 @@ export namespace SQLite {
                 this.isEditing = true;
             } finally {
                 try {
-                    await connector.close();
+                    await connector.release();
                 } catch (error: any) {
                     // nop
                 }
@@ -333,7 +451,7 @@ export namespace SQLite {
                     await connector.connect();
                     await this.updateToEditingFinish(connector);
                 } finally {
-                    await connector.close();
+                    await connector.release();
                 }     
                 this.isEditing = true;
             }
@@ -351,7 +469,7 @@ export namespace SQLite {
                 await connector.connect();
                 await this.updateToEditingFinish(connector);
             } finally {
-                await connector.close();
+                await connector.release();
             }
             this.records = [];
         }
@@ -426,7 +544,7 @@ export namespace SQLite {
                 this.isEditing = true;
             } finally {
                 try {
-                    await connector.close();
+                    await connector.release();
                 } catch (error: any) {
                     // nop
                 }
@@ -463,7 +581,7 @@ export namespace SQLite {
                     await connector.connect();
                     await this.updateToEditingFinish(connector);
                 } finally {
-                    await connector.close();
+                    await connector.release();
                 }     
                 this.isEditing = false;
             }
@@ -496,7 +614,7 @@ export namespace SQLite {
                 await this.updateToEditingFinish(connector);
                 this.isEditing = false;
             } finally {
-                await connector.close();
+                await connector.release();
             }
             this.record = this.getTable().createRecord();
         }

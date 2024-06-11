@@ -1,58 +1,66 @@
 import { Column, Datetime, RecordMap, StringObject, Table } from "scent-typescript";
 import { WhereSet } from "./WhereSet.js";
+import DatabaseError from "./DatabaseError.js";
+import DataNotFoundError from "./DataNotFoundError.js";
 
 /**
  * データベースに接続するための抽象クラス。
  * 
- * @template A データベースに接続するためのアダプターの型。
- * @template P アダプターのデータベース接続に必要なパラメーターの型。
+ * @template D デリゲートの型。
+ * @template C データベースに接続するためのパラメーターの型。
  */
-export abstract class Connector<A, P> {
+export default abstract class Connector<D, C> {
 
     /**
-     * コンストラクタ。データベース接続アダプターの接続に使用するパラメーターを指定する。
+     * コンストラクタ。データベース接続に使用するパラメーターを指定する。
      * 
      * @param connectionParameters 
      */
-    protected constructor(connectionParameters: P) {
+    protected constructor(connectionParameters: C) {
         this.connectionParameters = connectionParameters;
     }
 
     /**
-     * データベース接続アダプターの接続に使用するパラメーター。
+     * データベース接続デリゲートの接続に使用するパラメーター。
      */
-    protected readonly connectionParameters: P;
+    protected readonly connectionParameters: C;
 
-    private _adapter: A | null = null;
+    private _delegate: D | null = null;
 
     /**
-     * データベースに接続するためのアダプターのインスタンス。
+     * デリゲートのインスタンスが存在する場合はtrueを返す。
      * 
-     * @throws DatabaseError データベースの処理に失敗した場合。
+     * @returns 
      */
-    public get adapter(): A {
-        if (this._adapter === null) {
-            throw new DatabaseError("Not connected to database.");
-        }
-        return this._adapter;
+    public existsDelegate(): boolean {
+        return this._delegate !== null;
     }
 
     /**
-     * データベースに接続するためのアダプターを作成する。
+     * デリゲートのインスタンス。
      * 
-     * @param connectionParameters 
+     * @throws DatabaseError データベースの処理に失敗した場合。
+     */
+    public get delegate(): D {
+        if (this._delegate === null) {
+            throw new DatabaseError("Not connected to database.");
+        }
+        return this._delegate;
+    }
+
+    /**
+     * データベースへの接続でエラーが発生している場合はtrue。
+     */
+    public abstract get errorOccurred(): boolean;
+
+    /**
+     * 接続プールからデリゲートインスタンスを借りる。
+     * 
+     * @param pool 
      * @returns
      * @throws DatabaseError データベースの処理に失敗した場合。
      */
-    protected abstract createAdapter(connectionParameters: P): Promise<A>;
-
-    /**
-     * アダプターをデータベースに接続する。
-     * 
-     * @param adapter 
-     * @throws DatabaseError データベースの処理に失敗した場合。
-     */
-    protected abstract connectAdapter(adapter: A): Promise<void>;
+    protected abstract borrowDelegateFromPool(): Promise<D>;
 
     /**
      * データベースに接続する。
@@ -60,10 +68,35 @@ export abstract class Connector<A, P> {
      * @throws DatabaseError データベースの処理に失敗した場合。
      */
     public async connect(): Promise<void> {
+        await this.releaseDelegateToPool();
+        this._delegate = await this.borrowDelegateFromPool();
+    }
+
+    /**
+     * デリゲートインスタンスを接続プールに解放する。
+     * 
+     * @throws DatabaseError データベースの処理に失敗した場合。
+     */
+    protected abstract releaseDelegateToPool(): Promise<void>;
+
+    /**
+     * データベース接続を解放する。
+     * 
+     * @throws DatabaseError データベースの処理に失敗した場合。
+     */
+    public async release(): Promise<void> {
         try {
-            this._adapter = await this.createAdapter(this.connectionParameters);
-            await this.connectAdapter(this._adapter);
+            if (await this.isTransactionBegun()) {
+                await this.rollback();
+            }
         } catch (error: any) {
+        }
+        try {
+            await this.releaseDelegateToPool();
+        } catch (error: any) {
+            if (this.errorOccurred) {
+                return;
+            }
             if (error instanceof DatabaseError) {
                 throw error;
             }
@@ -85,11 +118,11 @@ export abstract class Connector<A, P> {
     }
 
     /**
-     * アダプターにステートメントを実行後に待機する最大時間のミリ秒をセットする。
+     * デリゲートにステートメントを実行後に待機する最大時間のミリ秒をセットする。
      * 
      * @throws DatabaseError データベースの処理に失敗した場合。
      */
-    protected abstract setStatementTimeoutToAdapter(milliseconds: number): Promise<void>;
+    protected abstract setStatementTimeoutToDelegate(milliseconds: number): Promise<void>;
 
     /**
      * 指定された値からプレースホルダーに使用できるバインド変数を作成する。
@@ -100,14 +133,14 @@ export abstract class Connector<A, P> {
     protected abstract createBindParameterFromValue(value: string | StringObject | number | boolean | Date | Datetime | Buffer): string | number | boolean | Date | Buffer;
 
     /**
-     * アダプターを使用してデータベースレコードを変更するSQLを実行する。
+     * デリゲートを使ってデータベースレコードを変更するSQLを実行する。
      * 
      * @param sql プレースホルダーを使用したSQL。
      * @param parameters バインド変数。
      * @returns 更新されたレコード数。
      * @throws DatabaseError データベースの処理に失敗した場合。
      */
-    protected abstract executeByAdapter(sql: string, parameters?: any[]): Promise<number>;
+    protected abstract executeByDelegate(sql: string, parameters?: any[]): Promise<number>;
 
     /**
      * データベースレコードを変更するSQLを実行する。
@@ -119,14 +152,14 @@ export abstract class Connector<A, P> {
      */
     public async execute(sql: string, parameters?: any[]): Promise<number> {
         try {
-            await this.setStatementTimeoutToAdapter(this._statementTimeoutMilliseconds);
+            await this.setStatementTimeoutToDelegate(this._statementTimeoutMilliseconds);
             const bindParameters = [];
             if (parameters) {
                 for (const value of parameters) {
                     bindParameters.push(this.createBindParameterFromValue(value));
                 }
             }
-            return await this.executeByAdapter(sql, bindParameters);
+            return await this.executeByDelegate(sql, bindParameters);
         } catch (error: any) {
             if (error instanceof DatabaseError) {
                 throw error;
@@ -136,14 +169,14 @@ export abstract class Connector<A, P> {
     }
 
     /**
-     * アダプターを使用して取得したクエリの結果で、最初の行、最初のフィールドの値を取得する。
+     * データベースからデリゲートを使って取得したクエリの結果で、最初の行、最初のフィールドの値を取得する。
      * 
      * @param sql 
      * @param parameters 
      * @returns
      * @throws DatabaseError データベースの処理に失敗した場合。
      */
-    protected abstract fetchFieldByAdapter(sql: string, parameters?: any[]): Promise<any>;
+    protected abstract fetchFieldByDelegate(sql: string, parameters?: any[]): Promise<any>;
 
     /**
      * データベースから取得したクエリの結果で、最初の行、最初のフィールドの値を取得する。
@@ -155,14 +188,14 @@ export abstract class Connector<A, P> {
      */
     public async fetchField(sql: string, parameters?: any[]): Promise<any> {
         try {
-            await this.setStatementTimeoutToAdapter(this._statementTimeoutMilliseconds);
+            await this.setStatementTimeoutToDelegate(this._statementTimeoutMilliseconds);
             const bindParameters = [];
             if (parameters) {
                 for (const value of parameters) {
                     bindParameters.push(this.createBindParameterFromValue(value));
                 }
             }
-            return await this.fetchFieldByAdapter(sql, bindParameters);
+            return await this.fetchFieldByDelegate(sql, bindParameters);
         } catch (error: any) {
             if (error instanceof DatabaseError) {
                 throw error;
@@ -172,14 +205,14 @@ export abstract class Connector<A, P> {
     }
 
     /**
-     * アダプターを使用して取得したクエリの結果で最初の行を取得する。
+     * データベースからデリゲートを使って取得したクエリの結果で最初の行を取得する。
      * 
      * @param sql 
      * @param parameters 
      * @returns
      * @throws DatabaseError データベースの処理に失敗した場合。
      */
-    protected abstract fetchRecordByAdapter(sql: string, parameters?: any[]): Promise<Record<string, any>>;
+    protected abstract fetchRecordByDelegate(sql: string, parameters?: any[]): Promise<Record<string, any>>;
 
     /**
      * データベースから取得したクエリの結果で最初の行を取得する。
@@ -191,14 +224,14 @@ export abstract class Connector<A, P> {
      */
     public async fetchRecord(sql: string, parameters?: any[]): Promise<Record<string, any>> {
         try {
-            await this.setStatementTimeoutToAdapter(this._statementTimeoutMilliseconds);
+            await this.setStatementTimeoutToDelegate(this._statementTimeoutMilliseconds);
             const bindParameters = [];
             if (parameters) {
                 for (const value of parameters) {
                     bindParameters.push(this.createBindParameterFromValue(value));
                 }
             }
-            return await this.fetchRecordByAdapter(sql, bindParameters);
+            return await this.fetchRecordByDelegate(sql, bindParameters);
         } catch (error: any) {
             if (error instanceof DatabaseError) {
                 throw error;
@@ -208,14 +241,14 @@ export abstract class Connector<A, P> {
     }
 
     /**
-     * アダプターを使用して取得したクエリの結果を全行取得する。
+     * データベースからデリゲートを使って取得したクエリの結果を全行取得する。
      * 
      * @param sql 
      * @param parameters 
      * @returns
      * @throws DatabaseError データベースの処理に失敗した場合。
      */
-    protected abstract fetchRecordsByAdapter(sql: string, parameters?: any[]): Promise<Record<string, any>[]>;
+    protected abstract fetchRecordsByDelegate(sql: string, parameters?: any[]): Promise<Record<string, any>[]>;
 
     /**
      * データベースから取得したクエリの結果を全行取得する。
@@ -227,14 +260,14 @@ export abstract class Connector<A, P> {
      */
     public async fetchRecords(sql: string, parameters?: any[]): Promise<Record<string, any>[]> {
         try {
-            await this.setStatementTimeoutToAdapter(this._statementTimeoutMilliseconds);
+            await this.setStatementTimeoutToDelegate(this._statementTimeoutMilliseconds);
             const bindParameters = [];
             if (parameters) {
                 for (const value of parameters) {
                     bindParameters.push(this.createBindParameterFromValue(value));
                 }
             }
-            return await this.fetchRecordsByAdapter(sql, bindParameters);
+            return await this.fetchRecordsByDelegate(sql, bindParameters);
         } catch (error: any) {
             if (error instanceof DatabaseError) {
                 throw error;
@@ -340,6 +373,14 @@ export abstract class Connector<A, P> {
     public abstract fetchColumns(table: string | Table<any>): Promise<string[]>;
 
     /**
+     * トランザクションが開始されている場合はtrueを返す。
+     * 
+     * @returns
+     * @throws DatabaseError データベースの処理に失敗した場合。
+     */
+    public abstract isTransactionBegun(): Promise<boolean>;
+
+    /**
      * トランザクションブロックを初期化する。以降の更新は全て明示的なコミットもしくはロールバックされるまで、単一のトランザクションの中で実行される。
      * 
      * @param option 
@@ -360,29 +401,6 @@ export abstract class Connector<A, P> {
      * @throws DatabaseError データベースの処理に失敗した場合。
      */
     public abstract commit(): Promise<void>;
-
-    /**
-     * アダプターをデータベースから切断する。
-     * 
-     * @throws DatabaseError データベースの処理に失敗した場合。
-     */
-    protected abstract closeAdapter(): Promise<void>;
-
-    /**
-     * データベース接続を閉じる。
-     * 
-     * @throws DatabaseError データベースの処理に失敗した場合。
-     */
-    public async close(): Promise<void> {
-        try {
-            this.closeAdapter();
-        } catch (error: any) {
-            if (error instanceof DatabaseError) {
-                throw error;
-            }
-            throw this.createErrorFromInnerError(error);
-        }
-    }
 
     /**
      * それぞれのデータベース内部のエラーを元にDatabaseErrorを作成する。
@@ -439,44 +457,5 @@ export abstract class Connector<A, P> {
      */
     public static makeCaseClauseFromObject(column: Column | string, object: Record<string, string>): string {
         return this.makeCaseClauseFromMap(column, new Map<string, string>(Object.entries(object)));
-    }
-}
-
-/**
- * データベースへの処理に失敗した場合に発生するエラーのクラス。
- */
-export class DatabaseError extends Error {
-
-    /**
-     * コンストラクタ。エラーメッセージとエラーコードを指定する。
-     * 
-     * @param messages 
-     * @param code 
-     */
-    public constructor(message?: string, code?: string) {
-        if (typeof message === "undefined") {
-            super("Unknown database error.");
-        } else {
-            super(message);
-        }
-        this.code = code;
-    }
-
-    /**
-     * エラーコード。
-     */
-    public readonly code: string | undefined;
-}
-
-/**
- * データが存在しない場合に発生するエラーのクラス。
- */
-export class DataNotFoundError extends DatabaseError {
-
-    /**
-     * コンストラクタ。
-     */
-    public constructor() {
-        super("Data does not exist.");
     }
 }

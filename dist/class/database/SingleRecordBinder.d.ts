@@ -1,12 +1,12 @@
+import Connector from "./Connector.js";
 import { RecordMap } from "scent-typescript";
-import { Connector as ParentConnector } from "./Connector.js";
 import RecordBinder from "./RecordBinder.js";
 /**
  * データベースの単一レコードとオブジェクトをバインドするための抽象クラス。
  *
  * @template C データベースコネクターの型。
  */
-export default abstract class SingleRecordBinder<C extends ParentConnector<any, any>> extends RecordBinder<C> {
+export default abstract class SingleRecordBinder<C extends Connector<any, any>> extends RecordBinder<C> {
     /**
      * @deprecated
      */

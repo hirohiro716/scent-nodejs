@@ -1,13 +1,15 @@
+import Connector from "./Connector.js";
 import { RecordMap, StringObject } from "scent-typescript";
-import { DataNotFoundError, Connector as ParentConnector, DatabaseError } from "./Connector.js";
 import RecordBinder from "./RecordBinder.js";
+import DatabaseError from "./DatabaseError.js";
+import DataNotFoundError from "./DataNotFoundError.js";
 
 /**
  * データベースの単一レコードとオブジェクトをバインドするための抽象クラス。
  * 
  * @template C データベースコネクターの型。
  */
-export default abstract class SingleRecordBinder<C extends ParentConnector<any, any>> extends RecordBinder<C> {
+export default abstract class SingleRecordBinder<C extends Connector<any, any>> extends RecordBinder<C> {
 
     /**
      * @deprecated

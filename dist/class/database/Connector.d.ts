@@ -1,51 +1,67 @@
 /// <reference types="node" />
 import { Column, Datetime, RecordMap, StringObject, Table } from "scent-typescript";
 import { WhereSet } from "./WhereSet.js";
+import DatabaseError from "./DatabaseError.js";
 /**
  * データベースに接続するための抽象クラス。
  *
- * @template A データベースに接続するためのアダプターの型。
- * @template P アダプターのデータベース接続に必要なパラメーターの型。
+ * @template D デリゲートの型。
+ * @template C データベースに接続するためのパラメーターの型。
  */
-export declare abstract class Connector<A, P> {
+export default abstract class Connector<D, C> {
     /**
-     * コンストラクタ。データベース接続アダプターの接続に使用するパラメーターを指定する。
+     * コンストラクタ。データベース接続に使用するパラメーターを指定する。
      *
      * @param connectionParameters
      */
-    protected constructor(connectionParameters: P);
+    protected constructor(connectionParameters: C);
     /**
-     * データベース接続アダプターの接続に使用するパラメーター。
+     * データベース接続デリゲートの接続に使用するパラメーター。
      */
-    protected readonly connectionParameters: P;
-    private _adapter;
+    protected readonly connectionParameters: C;
+    private _delegate;
     /**
-     * データベースに接続するためのアダプターのインスタンス。
+     * デリゲートのインスタンスが存在する場合はtrueを返す。
+     *
+     * @returns
+     */
+    existsDelegate(): boolean;
+    /**
+     * デリゲートのインスタンス。
      *
      * @throws DatabaseError データベースの処理に失敗した場合。
      */
-    get adapter(): A;
+    get delegate(): D;
     /**
-     * データベースに接続するためのアダプターを作成する。
+     * データベースへの接続でエラーが発生している場合はtrue。
+     */
+    abstract get errorOccurred(): boolean;
+    /**
+     * 接続プールからデリゲートインスタンスを借りる。
      *
-     * @param connectionParameters
+     * @param pool
      * @returns
      * @throws DatabaseError データベースの処理に失敗した場合。
      */
-    protected abstract createAdapter(connectionParameters: P): Promise<A>;
-    /**
-     * アダプターをデータベースに接続する。
-     *
-     * @param adapter
-     * @throws DatabaseError データベースの処理に失敗した場合。
-     */
-    protected abstract connectAdapter(adapter: A): Promise<void>;
+    protected abstract borrowDelegateFromPool(): Promise<D>;
     /**
      * データベースに接続する。
      *
      * @throws DatabaseError データベースの処理に失敗した場合。
      */
     connect(): Promise<void>;
+    /**
+     * デリゲートインスタンスを接続プールに解放する。
+     *
+     * @throws DatabaseError データベースの処理に失敗した場合。
+     */
+    protected abstract releaseDelegateToPool(): Promise<void>;
+    /**
+     * データベース接続を解放する。
+     *
+     * @throws DatabaseError データベースの処理に失敗した場合。
+     */
+    release(): Promise<void>;
     private _statementTimeoutMilliseconds;
     /**
      * ステートメントを実行後に待機する最大時間のミリ秒。
@@ -53,11 +69,11 @@ export declare abstract class Connector<A, P> {
     get statementTimeoutMilliseconds(): number;
     set statementTimeoutMilliseconds(milliseconds: number);
     /**
-     * アダプターにステートメントを実行後に待機する最大時間のミリ秒をセットする。
+     * デリゲートにステートメントを実行後に待機する最大時間のミリ秒をセットする。
      *
      * @throws DatabaseError データベースの処理に失敗した場合。
      */
-    protected abstract setStatementTimeoutToAdapter(milliseconds: number): Promise<void>;
+    protected abstract setStatementTimeoutToDelegate(milliseconds: number): Promise<void>;
     /**
      * 指定された値からプレースホルダーに使用できるバインド変数を作成する。
      *
@@ -66,14 +82,14 @@ export declare abstract class Connector<A, P> {
      */
     protected abstract createBindParameterFromValue(value: string | StringObject | number | boolean | Date | Datetime | Buffer): string | number | boolean | Date | Buffer;
     /**
-     * アダプターを使用してデータベースレコードを変更するSQLを実行する。
+     * デリゲートを使ってデータベースレコードを変更するSQLを実行する。
      *
      * @param sql プレースホルダーを使用したSQL。
      * @param parameters バインド変数。
      * @returns 更新されたレコード数。
      * @throws DatabaseError データベースの処理に失敗した場合。
      */
-    protected abstract executeByAdapter(sql: string, parameters?: any[]): Promise<number>;
+    protected abstract executeByDelegate(sql: string, parameters?: any[]): Promise<number>;
     /**
      * データベースレコードを変更するSQLを実行する。
      *
@@ -84,14 +100,14 @@ export declare abstract class Connector<A, P> {
      */
     execute(sql: string, parameters?: any[]): Promise<number>;
     /**
-     * アダプターを使用して取得したクエリの結果で、最初の行、最初のフィールドの値を取得する。
+     * データベースからデリゲートを使って取得したクエリの結果で、最初の行、最初のフィールドの値を取得する。
      *
      * @param sql
      * @param parameters
      * @returns
      * @throws DatabaseError データベースの処理に失敗した場合。
      */
-    protected abstract fetchFieldByAdapter(sql: string, parameters?: any[]): Promise<any>;
+    protected abstract fetchFieldByDelegate(sql: string, parameters?: any[]): Promise<any>;
     /**
      * データベースから取得したクエリの結果で、最初の行、最初のフィールドの値を取得する。
      *
@@ -102,14 +118,14 @@ export declare abstract class Connector<A, P> {
      */
     fetchField(sql: string, parameters?: any[]): Promise<any>;
     /**
-     * アダプターを使用して取得したクエリの結果で最初の行を取得する。
+     * データベースからデリゲートを使って取得したクエリの結果で最初の行を取得する。
      *
      * @param sql
      * @param parameters
      * @returns
      * @throws DatabaseError データベースの処理に失敗した場合。
      */
-    protected abstract fetchRecordByAdapter(sql: string, parameters?: any[]): Promise<Record<string, any>>;
+    protected abstract fetchRecordByDelegate(sql: string, parameters?: any[]): Promise<Record<string, any>>;
     /**
      * データベースから取得したクエリの結果で最初の行を取得する。
      *
@@ -120,14 +136,14 @@ export declare abstract class Connector<A, P> {
      */
     fetchRecord(sql: string, parameters?: any[]): Promise<Record<string, any>>;
     /**
-     * アダプターを使用して取得したクエリの結果を全行取得する。
+     * データベースからデリゲートを使って取得したクエリの結果を全行取得する。
      *
      * @param sql
      * @param parameters
      * @returns
      * @throws DatabaseError データベースの処理に失敗した場合。
      */
-    protected abstract fetchRecordsByAdapter(sql: string, parameters?: any[]): Promise<Record<string, any>[]>;
+    protected abstract fetchRecordsByDelegate(sql: string, parameters?: any[]): Promise<Record<string, any>[]>;
     /**
      * データベースから取得したクエリの結果を全行取得する。
      *
@@ -172,6 +188,13 @@ export declare abstract class Connector<A, P> {
      */
     abstract fetchColumns(table: string | Table<any>): Promise<string[]>;
     /**
+     * トランザクションが開始されている場合はtrueを返す。
+     *
+     * @returns
+     * @throws DatabaseError データベースの処理に失敗した場合。
+     */
+    abstract isTransactionBegun(): Promise<boolean>;
+    /**
      * トランザクションブロックを初期化する。以降の更新は全て明示的なコミットもしくはロールバックされるまで、単一のトランザクションの中で実行される。
      *
      * @param option
@@ -190,18 +213,6 @@ export declare abstract class Connector<A, P> {
      * @throws DatabaseError データベースの処理に失敗した場合。
      */
     abstract commit(): Promise<void>;
-    /**
-     * アダプターをデータベースから切断する。
-     *
-     * @throws DatabaseError データベースの処理に失敗した場合。
-     */
-    protected abstract closeAdapter(): Promise<void>;
-    /**
-     * データベース接続を閉じる。
-     *
-     * @throws DatabaseError データベースの処理に失敗した場合。
-     */
-    close(): Promise<void>;
     /**
      * それぞれのデータベース内部のエラーを元にDatabaseErrorを作成する。
      *
@@ -229,29 +240,4 @@ export declare abstract class Connector<A, P> {
      * @param object
      */
     static makeCaseClauseFromObject(column: Column | string, object: Record<string, string>): string;
-}
-/**
- * データベースへの処理に失敗した場合に発生するエラーのクラス。
- */
-export declare class DatabaseError extends Error {
-    /**
-     * コンストラクタ。エラーメッセージとエラーコードを指定する。
-     *
-     * @param messages
-     * @param code
-     */
-    constructor(message?: string, code?: string);
-    /**
-     * エラーコード。
-     */
-    readonly code: string | undefined;
-}
-/**
- * データが存在しない場合に発生するエラーのクラス。
- */
-export declare class DataNotFoundError extends DatabaseError {
-    /**
-     * コンストラクタ。
-     */
-    constructor();
 }

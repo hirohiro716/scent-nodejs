@@ -1,5 +1,5 @@
+import Connector from "./Connector.js";
 import { Table } from "scent-typescript";
-import { Connector } from "./Connector.js";
 import { WhereSet } from "./WhereSet.js";
 /**
  * データベースのレコードを検索するための抽象クラス。

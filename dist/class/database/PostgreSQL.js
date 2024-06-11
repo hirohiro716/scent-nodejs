@@ -1,13 +1,65 @@
 import pg from "pg";
-import { DataNotFoundError, Connector as ParentConnector, DatabaseError } from "./Connector.js";
+import { default as ParentConnector } from "./Connector.js";
+import { default as ParentPool } from "./Pool.js";
 import { Datetime, StringObject, Table } from "scent-typescript";
 import ParentRecordBinder from "./RecordBinder.js";
 import ParentSingleRecordBinder from "./SingleRecordBinder.js";
+import DataNotFoundError from "./DataNotFoundError.js";
+import DatabaseError from "./DatabaseError.js";
 /**
  * PostgreSQLデータベース関連のクラス。
  */
 export var PostgreSQL;
 (function (PostgreSQL) {
+    /**
+     * PostgreSQLへの接続をプールするクラス。
+     */
+    class Pool extends ParentPool {
+        /**
+         * コンストラクタ。接続に使用するパラメーターを指定する。
+         *
+         * @param connectionParameters
+         */
+        constructor(connectionParameters) {
+            super(new pg.Pool({
+                host: connectionParameters.serverAddress,
+                database: connectionParameters.databaseName,
+                user: connectionParameters.user,
+                password: connectionParameters.password,
+                port: connectionParameters.portNumber,
+                connectionTimeoutMillis: connectionParameters.connectionTimeoutMilliseconds,
+                max: Pool.maximumNumberOfConnections,
+            }), connectionParameters);
+        }
+        async borrowConnectorDelegate() {
+            try {
+                return await this.delegate.connect();
+            }
+            catch (error) {
+                throw this.createErrorFromInnerError(error);
+            }
+        }
+        async releaseConnectorDelegate(connectorDelegate, errorOccurred) {
+            try {
+                connectorDelegate.release(errorOccurred);
+            }
+            catch (error) {
+                throw this.createErrorFromInnerError(error);
+            }
+        }
+        async end() {
+            try {
+                await this.delegate.end();
+            }
+            catch (error) {
+                throw this.createErrorFromInnerError(error);
+            }
+        }
+        createErrorFromInnerError(error) {
+            return new DatabaseError(error.message, error.code);
+        }
+    }
+    PostgreSQL.Pool = Pool;
     /**
      * PostgreSQLに接続するクラス。接続する前にコネクションプールを開始する必要がある。
      */
@@ -19,76 +71,32 @@ export var PostgreSQL;
          */
         constructor(connectionParameters) {
             super(connectionParameters);
-            this._poolClient = null;
+            this._errorOccurred = false;
+            this._isTransactionBegun = false;
         }
-        /**
-         * 許容する最大接続数を指定してコネクションプールを開始する。
-         *
-         * @param maximumNumberOfConnections
-         */
-        static poolStart(maximumNumberOfConnections) {
-            if (this.pools !== null) {
-                return;
+        get errorOccurred() {
+            return this._errorOccurred;
+        }
+        async borrowDelegateFromPool() {
+            let pool = Pool.get(this.connectionParameters);
+            if (typeof pool === "undefined") {
+                pool = new Pool(this.connectionParameters);
+                Pool.put(this.connectionParameters, pool);
             }
-            this.pools = new Map();
-            this.maximumNumberOfConnections = maximumNumberOfConnections;
+            const delegate = await pool.borrowConnectorDelegate();
+            delegate.addListener("error", () => {
+                this._errorOccurred = true;
+            });
+            return delegate;
         }
-        /**
-         * コネクションプールを終了する。
-         *
-         * @throws DatabaseError データベースの処理に失敗した場合。
-         */
-        static async poolEnd() {
-            if (this.pools !== null) {
-                for (const pool of this.pools.values()) {
-                    try {
-                        await pool.end();
-                    }
-                    catch (error) {
-                        throw new DatabaseError(error.message);
-                    }
-                }
-                this.pools = null;
+        async releaseDelegateToPool() {
+            const pool = Pool.get(this.connectionParameters);
+            if (typeof pool !== "undefined" && this.existsDelegate()) {
+                pool.releaseConnectorDelegate(this.delegate, this._errorOccurred);
             }
         }
-        /**
-         * アダプターが生成したデータベースに接続するためのクライアントインスタンス。
-         *
-         * @throws DatabaseError データベースの処理に失敗した場合。
-         */
-        get poolClient() {
-            if (this._poolClient === null) {
-                throw new DatabaseError("Not connected to database.");
-            }
-            return this._poolClient;
-        }
-        async createAdapter(connectionParameters) {
-            if (Connector.pools === null) {
-                throw new DatabaseError("Pool has not been started.");
-            }
-            else {
-                const jsonOfParameters = JSON.stringify(connectionParameters);
-                let pool = Connector.pools.get(jsonOfParameters);
-                if (typeof pool === "undefined") {
-                    pool = new pg.Pool({
-                        host: connectionParameters.serverAddress,
-                        database: connectionParameters.databaseName,
-                        user: connectionParameters.user,
-                        password: connectionParameters.password,
-                        port: connectionParameters.portNumber,
-                        connectionTimeoutMillis: connectionParameters.connectionTimeoutMilliseconds,
-                        max: Connector.maximumNumberOfConnections,
-                    });
-                    Connector.pools.set(jsonOfParameters, pool);
-                }
-                return pool;
-            }
-        }
-        async connectAdapter(adapter) {
-            this._poolClient = await adapter.connect();
-        }
-        async setStatementTimeoutToAdapter(milliseconds) {
-            await this.poolClient.query(StringObject.join(["SET statement_timeout = ", milliseconds, ";"]).toString());
+        async setStatementTimeoutToDelegate(milliseconds) {
+            await this.delegate.query(StringObject.join(["SET statement_timeout TO ", milliseconds, ";"]).toString());
         }
         createBindParameterFromValue(value) {
             if (value instanceof StringObject) {
@@ -137,12 +145,12 @@ export var PostgreSQL;
             }
             return fixed.toString();
         }
-        async executeByAdapter(sql, parameters) {
-            const result = await this.poolClient.query(this.fixPlaceholder(sql), parameters);
+        async executeByDelegate(sql, parameters) {
+            const result = await this.delegate.query(this.fixPlaceholder(sql), parameters);
             return result.rowCount;
         }
-        async fetchFieldByAdapter(sql, parameters) {
-            const result = await this.poolClient.query(this.fixPlaceholder(sql), parameters);
+        async fetchFieldByDelegate(sql, parameters) {
+            const result = await this.delegate.query(this.fixPlaceholder(sql), parameters);
             try {
                 return result.rows[0][result.fields[0].name];
             }
@@ -150,15 +158,15 @@ export var PostgreSQL;
                 throw new DataNotFoundError();
             }
         }
-        async fetchRecordByAdapter(sql, parameters) {
-            const result = await this.poolClient.query(this.fixPlaceholder(sql), parameters);
+        async fetchRecordByDelegate(sql, parameters) {
+            const result = await this.delegate.query(this.fixPlaceholder(sql), parameters);
             if (result.rowCount === 0) {
                 throw new DataNotFoundError();
             }
             return result.rows[0];
         }
-        async fetchRecordsByAdapter(sql, parameters) {
-            const result = await this.poolClient.query(this.fixPlaceholder(sql), parameters);
+        async fetchRecordsByDelegate(sql, parameters) {
+            const result = await this.delegate.query(this.fixPlaceholder(sql), parameters);
             return result.rows;
         }
         async existsTable(table) {
@@ -239,26 +247,25 @@ export var PostgreSQL;
             sql.append(" IN ACCESS EXCLUSIVE MODE NOWAIT;");
             await this.execute(sql.toString());
         }
+        async isTransactionBegun() {
+            return this._isTransactionBegun;
+        }
         async begin() {
-            await this.executeByAdapter("BEGIN;");
+            await this.executeByDelegate("BEGIN;");
+            this._isTransactionBegun = true;
         }
         async rollback() {
-            await this.executeByAdapter("ROLLBACK;");
+            await this.executeByDelegate("ROLLBACK;");
+            this._isTransactionBegun = false;
         }
         async commit() {
-            await this.executeByAdapter("COMMIT;");
-        }
-        async closeAdapter() {
-            if (this._poolClient) {
-                this._poolClient.release();
-            }
+            await this.executeByDelegate("COMMIT;");
+            this._isTransactionBegun = false;
         }
         createErrorFromInnerError(error) {
             return new DatabaseError(error.message, error.code);
         }
     }
-    Connector.pools = null;
-    Connector.maximumNumberOfConnections = 4;
     PostgreSQL.Connector = Connector;
     /**
      * データベースのレコードとオブジェクトをバインドするための抽象クラス。

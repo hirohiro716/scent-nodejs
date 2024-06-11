@@ -1,15 +1,127 @@
 import sqlite3 from "sqlite3";
-import { DataNotFoundError, Connector as ParentConnector, DatabaseError } from "./Connector.js";
+import { default as ParentPool } from "./Pool.js";
+import { default as ParentConnector } from "./Connector.js";
 import { Datetime, StringObject, Table } from "scent-typescript";
 import ParentRecordBinder from "./RecordBinder.js";
 import ParentSingleRecordBinder from "./SingleRecordBinder.js";
+import DatabaseError from "./DatabaseError.js";
+import DataNotFoundError from "./DataNotFoundError.js";
 /**
  * SQLiteデータベース関連のクラス。
  */
 export var SQLite;
 (function (SQLite) {
     /**
-     * SQLiteに接続するクラス。
+     * SQLiteへの接続をプールするクラス。
+     */
+    class Pool extends ParentPool {
+        /**
+         * コンストラクタ。接続に使用するパラメーターを指定する。
+         *
+         * @param connectionParameters
+         */
+        constructor(connectionParameters) {
+            super(undefined, connectionParameters);
+            this.connectorDelegates = [];
+            this.maximumNumberOfConnections = Pool.maximumNumberOfConnections;
+            this.borrowingStatus = new Int32Array(this.maximumNumberOfConnections);
+        }
+        async borrowConnectorDelegate() {
+            let barrowedIndex = -1;
+            for (let index = 0; index < this.maximumNumberOfConnections - 1; index++) {
+                if (Atomics.compareExchange(this.borrowingStatus, index, 0, 1) === 0) {
+                    barrowedIndex = index;
+                    break;
+                }
+            }
+            if (barrowedIndex > -1) {
+                let connectorDelegate = this.connectorDelegates[barrowedIndex];
+                if (typeof connectorDelegate !== "undefined") {
+                    return connectorDelegate;
+                }
+                return new Promise((resolve, reject) => {
+                    const database = new sqlite3.Database(this.connectionParameters.databaseFile.getAbsolutePath(), (error) => {
+                        if (error) {
+                            reject(error);
+                        }
+                        else {
+                            this.connectorDelegates[barrowedIndex] = database;
+                            resolve(database);
+                        }
+                    });
+                });
+            }
+            else {
+                return new Promise((resolve, reject) => {
+                    setTimeout(async () => {
+                        try {
+                            const database = await this.borrowConnectorDelegate();
+                            resolve(database);
+                        }
+                        catch (error) {
+                            reject(error);
+                        }
+                    }, 100);
+                });
+            }
+        }
+        async releaseConnectorDelegate(connectorDelegate, errorOccurred) {
+            const index = this.connectorDelegates.indexOf(connectorDelegate);
+            if (index === -1) {
+                throw new DatabaseError("Connectors that are not managed by a pool cannot be released.");
+            }
+            if (errorOccurred) {
+                connectorDelegate.close();
+                this.connectorDelegates[index] = undefined;
+            }
+            Atomics.store(this.borrowingStatus, index, 0);
+            Atomics.notify(this.borrowingStatus, index);
+        }
+        /**
+         * 指定されたコネクターのデリゲートインスタンスを閉じる。
+         *
+         * @param connectorDelegate
+         */
+        closeConnectorDelegate(connectorDelegate) {
+            return new Promise((resolve, reject) => {
+                if (typeof connectorDelegate === "undefined") {
+                    resolve();
+                }
+                else {
+                    connectorDelegate.close((error) => {
+                        if (error) {
+                            reject(error);
+                        }
+                        else {
+                            resolve();
+                        }
+                    });
+                }
+            });
+        }
+        async end() {
+            let throwLater = null;
+            for (let index = 0; index < this.maximumNumberOfConnections - 1; index++) {
+                const connectorDelegate = this.connectorDelegates[index];
+                try {
+                    await this.closeConnectorDelegate(connectorDelegate);
+                    this.connectorDelegates[index] = undefined;
+                }
+                catch (error) {
+                    throwLater = error;
+                }
+            }
+            if (throwLater !== null) {
+                throw throwLater;
+            }
+        }
+        createErrorFromInnerError(error) {
+            return new DatabaseError(error.message, error.errno);
+        }
+    }
+    SQLite.Pool = Pool;
+    /**
+     * SQLiteに接続するクラス。接続する前にコネクションプールを開始する必要がある。
      */
     class Connector extends ParentConnector {
         /**
@@ -19,26 +131,34 @@ export var SQLite;
          */
         constructor(connectionParameters) {
             super(connectionParameters);
+            this._errorOccurred = false;
+            this._isTransactionBegun = false;
             this._isolationLevel = null;
         }
-        createAdapter(connectionParameters) {
-            return new Promise((resolve, reject) => {
-                const database = new sqlite3.Database(connectionParameters.databaseFile.getAbsolutePath(), (error) => {
-                    if (error) {
-                        reject(error);
-                    }
-                    else {
-                        resolve(database);
-                    }
-                });
+        get errorOccurred() {
+            return this._errorOccurred;
+        }
+        async borrowDelegateFromPool() {
+            let pool = Pool.get(this.connectionParameters);
+            if (typeof pool === "undefined") {
+                pool = new Pool(this.connectionParameters);
+                Pool.put(this.connectionParameters, pool);
+            }
+            const delegate = await pool.borrowConnectorDelegate();
+            delegate.addListener("error", () => {
+                this._errorOccurred = true;
             });
+            return delegate;
         }
-        async connectAdapter(adapter) {
-            // nop
+        async releaseDelegateToPool() {
+            const pool = Pool.get(this.connectionParameters);
+            if (typeof pool !== "undefined" && this.existsDelegate()) {
+                pool.releaseConnectorDelegate(this.delegate, this._errorOccurred);
+            }
         }
-        setStatementTimeoutToAdapter(milliseconds) {
+        setStatementTimeoutToDelegate(milliseconds) {
             return new Promise((resolve, reject) => {
-                this.adapter.run(StringObject.join(["PRAGMA busy_timeout = ", milliseconds, ";"]).toString(), (error) => {
+                this.delegate.run(StringObject.join(["PRAGMA busy_timeout = ", milliseconds, ";"]).toString(), (error) => {
                     if (error) {
                         reject(error);
                     }
@@ -60,9 +180,9 @@ export var SQLite;
             }
             return value;
         }
-        executeByAdapter(sql, parameters) {
+        executeByDelegate(sql, parameters) {
             return new Promise((resolve, reject) => {
-                this.adapter.run(sql, parameters, (error) => {
+                this.delegate.run(sql, parameters, (error) => {
                     if (error) {
                         reject(error);
                     }
@@ -76,9 +196,9 @@ export var SQLite;
                 });
             });
         }
-        fetchFieldByAdapter(sql, parameters) {
+        fetchFieldByDelegate(sql, parameters) {
             return new Promise((resolve, reject) => {
-                this.adapter.get(sql, parameters, (error, row) => {
+                this.delegate.get(sql, parameters, (error, row) => {
                     if (error) {
                         reject(error);
                     }
@@ -94,9 +214,9 @@ export var SQLite;
                 });
             });
         }
-        fetchRecordByAdapter(sql, parameters) {
+        fetchRecordByDelegate(sql, parameters) {
             return new Promise((resolve, reject) => {
-                this.adapter.get(sql, parameters, (error, row) => {
+                this.delegate.get(sql, parameters, (error, row) => {
                     if (error) {
                         reject(error);
                     }
@@ -111,9 +231,9 @@ export var SQLite;
                 });
             });
         }
-        fetchRecordsByAdapter(sql, parameters) {
+        fetchRecordsByDelegate(sql, parameters) {
             return new Promise((resolve, reject) => {
-                this.adapter.all(sql, parameters, (error, rows) => {
+                this.delegate.all(sql, parameters, (error, rows) => {
                     if (error) {
                         reject(error);
                     }
@@ -164,6 +284,9 @@ export var SQLite;
         fetchLastInsertedRecordID() {
             return this.fetchField("SELECT LAST_INSERT_ROWID();");
         }
+        async isTransactionBegun() {
+            return this._isTransactionBegun;
+        }
         /**
          * トランザクションの分離レベル。
          */
@@ -180,32 +303,17 @@ export var SQLite;
             sql.append(isolationLevel);
             sql.append(";");
             await this.execute(sql.upper().toString());
+            this._isTransactionBegun = true;
         }
         async rollback() {
             this._isolationLevel = null;
             await this.execute("ROLLBACK;");
+            this._isTransactionBegun = false;
         }
         async commit() {
             this._isolationLevel = null;
             await this.execute("COMMIT;");
-        }
-        closeAdapter() {
-            return new Promise((resolve, reject) => {
-                if (this.adapter === null) {
-                    this._isolationLevel = null;
-                    resolve();
-                    return;
-                }
-                this.adapter.close((error) => {
-                    if (error) {
-                        reject(error);
-                    }
-                    else {
-                        this._isolationLevel = null;
-                        resolve();
-                    }
-                });
-            });
+            this._isTransactionBegun = false;
         }
         createErrorFromInnerError(error) {
             return new DatabaseError(error.message, error.errno);
@@ -267,7 +375,7 @@ export var SQLite;
             }
             finally {
                 try {
-                    await connector.close();
+                    await connector.release();
                 }
                 catch (error) {
                     // nop
@@ -287,7 +395,7 @@ export var SQLite;
                     await this.updateToEditingFinish(connector);
                 }
                 finally {
-                    await connector.close();
+                    await connector.release();
                 }
                 this.isEditing = true;
             }
@@ -305,7 +413,7 @@ export var SQLite;
                 await this.updateToEditingFinish(connector);
             }
             finally {
-                await connector.close();
+                await connector.release();
             }
             this.records = [];
         }
@@ -351,7 +459,7 @@ export var SQLite;
             }
             finally {
                 try {
-                    await connector.close();
+                    await connector.release();
                 }
                 catch (error) {
                     // nop
@@ -388,7 +496,7 @@ export var SQLite;
                     await this.updateToEditingFinish(connector);
                 }
                 finally {
-                    await connector.close();
+                    await connector.release();
                 }
                 this.isEditing = false;
             }
@@ -420,7 +528,7 @@ export var SQLite;
                 this.isEditing = false;
             }
             finally {
-                await connector.close();
+                await connector.release();
             }
             this.record = this.getTable().createRecord();
         }

@@ -1,6 +1,7 @@
+import Connector from "./Connector.js";
 import { StringObject, Table } from "scent-typescript";
-import { Connector, DatabaseError } from "./Connector.js";
 import { WhereSet } from "./WhereSet.js";
+import DatabaseError from "./DatabaseError.js";
 
 /**
  * データベースのレコードを検索するための抽象クラス。

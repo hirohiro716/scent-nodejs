@@ -1,7 +1,8 @@
+import Connector from "./Connector.js";
 import { Column, RecordMap, StringObject, Table } from "scent-typescript";
-import { Connector, DatabaseError } from "./Connector.js";
 import { WhereSet } from "./WhereSet.js";
 import { RecordMapValidationError } from "./RecordMapValidationError.js";
+import DatabaseError from "./DatabaseError.js";
 
 /**
  * データベースのレコードとオブジェクトをバインドするための抽象クラス。

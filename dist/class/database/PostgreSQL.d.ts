@@ -1,9 +1,11 @@
 /// <reference types="node" />
 import pg from "pg";
-import { Connector as ParentConnector, DatabaseError } from "./Connector.js";
+import { default as ParentConnector } from "./Connector.js";
+import { default as ParentPool } from "./Pool.js";
 import { Datetime, StringObject, Table } from "scent-typescript";
 import ParentRecordBinder from "./RecordBinder.js";
 import ParentSingleRecordBinder from "./SingleRecordBinder.js";
+import DatabaseError from "./DatabaseError.js";
 /**
  * PostgreSQLデータベース関連のクラス。
  */
@@ -17,39 +19,35 @@ export declare namespace PostgreSQL {
         connectionTimeoutMilliseconds?: number;
     };
     /**
-     * PostgreSQLに接続するクラス。接続する前にコネクションプールを開始する必要がある。
+     * PostgreSQLへの接続をプールするクラス。
      */
-    export class Connector extends ParentConnector<pg.Pool, ConnectionParameters> {
+    export class Pool extends ParentPool<pg.Pool, ConnectionParameters, pg.PoolClient> {
         /**
          * コンストラクタ。接続に使用するパラメーターを指定する。
          *
          * @param connectionParameters
          */
         constructor(connectionParameters: ConnectionParameters);
-        private static pools;
-        private static maximumNumberOfConnections;
+        borrowConnectorDelegate(): Promise<pg.PoolClient>;
+        releaseConnectorDelegate(connectorDelegate: pg.PoolClient, errorOccurred: boolean): Promise<void>;
+        protected end(): Promise<void>;
+        protected createErrorFromInnerError(error: pg.DatabaseError): DatabaseError;
+    }
+    /**
+     * PostgreSQLに接続するクラス。接続する前にコネクションプールを開始する必要がある。
+     */
+    export class Connector extends ParentConnector<pg.PoolClient, ConnectionParameters> {
         /**
-         * 許容する最大接続数を指定してコネクションプールを開始する。
+         * コンストラクタ。接続に使用するパラメーターを指定する。
          *
-         * @param maximumNumberOfConnections
+         * @param connectionParameters
          */
-        static poolStart(maximumNumberOfConnections: number): void;
-        /**
-         * コネクションプールを終了する。
-         *
-         * @throws DatabaseError データベースの処理に失敗した場合。
-         */
-        static poolEnd(): Promise<void>;
-        private _poolClient;
-        /**
-         * アダプターが生成したデータベースに接続するためのクライアントインスタンス。
-         *
-         * @throws DatabaseError データベースの処理に失敗した場合。
-         */
-        get poolClient(): pg.PoolClient;
-        protected createAdapter(connectionParameters: ConnectionParameters): Promise<pg.Pool>;
-        protected connectAdapter(adapter: pg.Pool): Promise<void>;
-        protected setStatementTimeoutToAdapter(milliseconds: number): Promise<void>;
+        constructor(connectionParameters: ConnectionParameters);
+        private _errorOccurred;
+        get errorOccurred(): boolean;
+        protected borrowDelegateFromPool(): Promise<pg.PoolClient>;
+        protected releaseDelegateToPool(): Promise<void>;
+        protected setStatementTimeoutToDelegate(milliseconds: number): Promise<void>;
         protected createBindParameterFromValue(value: string | StringObject | number | boolean | Date | Datetime | Buffer): string | number | boolean | Date | Buffer;
         /**
          * 指定されたSQLのプレースホルダー(?)をpgで使用できる$nに修正する。
@@ -58,10 +56,10 @@ export declare namespace PostgreSQL {
          * @returns
          */
         private fixPlaceholder;
-        protected executeByAdapter(sql: string, parameters?: any[]): Promise<number>;
-        protected fetchFieldByAdapter(sql: string, parameters?: any[]): Promise<any>;
-        protected fetchRecordByAdapter(sql: string, parameters?: any[]): Promise<Record<string, any>>;
-        protected fetchRecordsByAdapter(sql: string, parameters?: any[]): Promise<Record<string, any>[]>;
+        protected executeByDelegate(sql: string, parameters?: any[]): Promise<number>;
+        protected fetchFieldByDelegate(sql: string, parameters?: any[]): Promise<any>;
+        protected fetchRecordByDelegate(sql: string, parameters?: any[]): Promise<Record<string, any>>;
+        protected fetchRecordsByDelegate(sql: string, parameters?: any[]): Promise<Record<string, any>[]>;
         existsTable(table: string | Table<any>): Promise<boolean>;
         fetchColumns(table: string | Table<any>): Promise<string[]>;
         /**
@@ -92,10 +90,11 @@ export declare namespace PostgreSQL {
          * @throws DatabaseError データベースの処理に失敗した場合。
          */
         lockTable(table: string | Table<any>): Promise<void>;
+        private _isTransactionBegun;
+        isTransactionBegun(): Promise<boolean>;
         begin(): Promise<void>;
         rollback(): Promise<void>;
         commit(): Promise<void>;
-        protected closeAdapter(): Promise<void>;
         protected createErrorFromInnerError(error: pg.DatabaseError): DatabaseError;
     }
     /**
