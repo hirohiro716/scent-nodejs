@@ -126,7 +126,7 @@ export default class EmailTransmitter {
     private _isEnableDebug: boolean = false;
 
     /**
-     * デバッグを有効にする場合はtrueをセットする。
+     * デバッグを有効にする場合はtrue。
      */
     public get isEnableDebug(): boolean {
         return this._isEnableDebug;

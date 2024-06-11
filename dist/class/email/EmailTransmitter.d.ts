@@ -61,7 +61,7 @@ export default class EmailTransmitter {
     removeRecipientAddress(recipientAddress: string): void;
     private _isEnableDebug;
     /**
-     * デバッグを有効にする場合はtrueをセットする。
+     * デバッグを有効にする場合はtrue。
      */
     get isEnableDebug(): boolean;
     set isEnableDebug(isEnableDebug: boolean);

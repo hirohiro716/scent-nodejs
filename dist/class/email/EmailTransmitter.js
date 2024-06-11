@@ -99,7 +99,7 @@ export default class EmailTransmitter {
         });
     }
     /**
-     * デバッグを有効にする場合はtrueをセットする。
+     * デバッグを有効にする場合はtrue。
      */
     get isEnableDebug() {
         return this._isEnableDebug;
