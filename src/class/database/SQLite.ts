@@ -411,10 +411,6 @@ export namespace SQLite {
 
         private isEditing: boolean = false;
 
-
-
-        // TODO: editByConnector
-
         public async edit(): Promise<void> {
             if (this.isEditing) {
                 return;
