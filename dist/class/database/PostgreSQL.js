@@ -147,7 +147,11 @@ export var PostgreSQL;
         }
         async executeByDelegate(sql, parameters) {
             const result = await this.delegate.query(this.fixPlaceholder(sql), parameters);
-            return result.rowCount;
+            let numberOfRecordsLastUpdated = result.rowCount;
+            if (numberOfRecordsLastUpdated == null) {
+                numberOfRecordsLastUpdated = 0;
+            }
+            return numberOfRecordsLastUpdated;
         }
         async fetchFieldByDelegate(sql, parameters) {
             const result = await this.delegate.query(this.fixPlaceholder(sql), parameters);

@@ -1,4 +1,3 @@
-/// <reference types="node" />
 import pg from "pg";
 import { default as ParentConnector } from "./Connector.js";
 import { default as ParentPool } from "./Pool.js";

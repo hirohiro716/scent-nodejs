@@ -356,7 +356,6 @@ export var SQLite;
             sql.append(";");
             return this.connector.fetchRecords(sql.toString(), this.whereSet.buildParameters());
         }
-        // TODO: editByConnector
         async edit() {
             if (this.isEditing) {
                 return;

@@ -1,5 +1,3 @@
-/// <reference types="node" />
-/// <reference types="node" />
 import { Readable } from "stream";
 import { ByteArray } from "scent-typescript";
 type Type = "png" | "svg";

@@ -138,9 +138,9 @@ export default class EmailTransmitter {
             logger: this._isEnableDebug
         });
         const text = new StringObject(body);
-        text.replaceCrlf(this._lineSeparator);
-        text.replaceCr(this._lineSeparator);
-        text.replaceLf(this._lineSeparator);
+        text.replaceCRLF(this._lineSeparator);
+        text.replaceCR(this._lineSeparator);
+        text.replaceLF(this._lineSeparator);
         await transport.sendMail({
             from: this._myAddress,
             to: this.recipientAddresses.to,

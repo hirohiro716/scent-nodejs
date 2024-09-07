@@ -63,20 +63,6 @@ class Pool {
         const jsonOfParameters = JSON.stringify(connectionParameters);
         this.pools.set(jsonOfParameters, pool);
     }
-    // /**
-    //  * 指定されたデータベース接続パラメーターに対するプールを削除する。
-    //  * 
-    //  * @param connectionParameters 
-    //  * @throws DatabaseError データベースの処理に失敗した場合。
-    //  */
-    // public static remove(connectionParameters: {}): void {
-    //     if (this.pools === null) {
-    //         throw new DatabaseError("Pool has not been started.");
-    //     }
-    //     const jsonOfParameters = JSON.stringify(connectionParameters);
-    //     this.pools.delete(jsonOfParameters);
-    // }
-    // TODO:
     /**
      * 接続プールを終了する。
      *

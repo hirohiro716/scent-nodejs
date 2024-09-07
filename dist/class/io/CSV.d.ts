@@ -1,4 +1,3 @@
-/// <reference types="node" />
 import { Writable } from "stream";
 import File from "../filesystem/File.js";
 /**

@@ -164,7 +164,11 @@ export namespace PostgreSQL {
     
         protected async executeByDelegate(sql: string, parameters?: any[]): Promise<number> {
             const result = await this.delegate.query(this.fixPlaceholder(sql), parameters);
-            return result.rowCount;
+            let numberOfRecordsLastUpdated = result.rowCount;
+            if (numberOfRecordsLastUpdated == null) {
+                numberOfRecordsLastUpdated = 0;
+            }
+            return numberOfRecordsLastUpdated;
         }
     
         protected async fetchFieldByDelegate(sql: string, parameters?: any[]): Promise<any> {

@@ -148,18 +148,14 @@ export default class File extends FilesystemItem {
     public writeByteArray(byteArray: ByteArray, highWaterMark?: number): Promise<void> {
         return new Promise<void>((resolve, reject) => {
             const writable = this.createWriteStream(highWaterMark);
-            byteArray.toUnit8Array().then((unit8Array) => {
-                const result = writable.write(unit8Array, (error: any) => {
-                    if (error) {
-                        reject(error);
-                    }
-                });
-                if (result) {
-                    resolve();
+            const result = writable.write(byteArray.uint8Array, (error: any) => {
+                if (error) {
+                    reject(error);
                 }
-            }).catch((error:any) => {
-                reject(error);
             });
+            if (result) {
+                resolve();
+            }
         });
     }
 }

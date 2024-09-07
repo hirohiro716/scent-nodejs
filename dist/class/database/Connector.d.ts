@@ -1,4 +1,3 @@
-/// <reference types="node" />
 import { Column, Datetime, RecordMap, StringObject, Table } from "scent-typescript";
 import { WhereSet } from "./WhereSet.js";
 import DatabaseError from "./DatabaseError.js";

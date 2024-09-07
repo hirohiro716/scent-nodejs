@@ -1,5 +1,3 @@
-/// <reference types="node" />
-/// <reference types="node" />
 import { Readable } from "stream";
 import File from "./File.js";
 import { ByteArray, Dimension } from "scent-typescript";

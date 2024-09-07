@@ -91,13 +91,9 @@ export default class QRCode {
                     readable.push(null);
                     resolve(readable);
                 } else if (this.contentOrImageData instanceof ByteArray) {
-                    this.contentOrImageData.toBuffer().then((buffer) => {
-                        readable.push(buffer);
-                        readable.push(null);
-                        resolve(readable);
-                    }).catch((error: any) => {
-                        reject(error);
-                    });
+                    readable.push(this.contentOrImageData.toBuffer());
+                    readable.push(null);
+                    resolve(readable);
                 }
             }
         });

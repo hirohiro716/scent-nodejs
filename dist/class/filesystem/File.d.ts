@@ -1,5 +1,3 @@
-/// <reference types="node" />
-/// <reference types="node" />
 import { Readable, Writable } from "stream";
 import FilesystemItem from "./FilesystemItem.js";
 import Directory from "./Directory.js";

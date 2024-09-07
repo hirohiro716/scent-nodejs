@@ -1,4 +1,3 @@
-/// <reference types="node" />
 import formidable from "formidable";
 import { IncomingMessage } from "http";
 import File from "../filesystem/File.js";

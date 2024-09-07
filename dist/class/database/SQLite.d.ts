@@ -1,4 +1,3 @@
-/// <reference types="node" />
 import sqlite3 from "sqlite3";
 import { default as ParentPool } from "./Pool.js";
 import { default as ParentConnector } from "./Connector.js";
