@@ -13,6 +13,7 @@
         "fs": "^0.0.1-security",
         "path": "^0.12.7",
         "prisma": "^4.14.0",
+        "@prisma/client": "^4.16.2",
         "pg": "^8.11.3",
         "sqlite3": "^5.1.6",
         "sharp": "^0.32.4",
@@ -24,7 +25,6 @@
     "devDependencies": {
         "@types/node": "20.1.4",
         "@types/formidable": "^3.4.0",
-        "@prisma/client": "^4.16.2",
         "@types/pg": "^8.10.7",
         "@types/sqlite3": "^3.1.10",
         "@types/qrcode": "^1.5.4",
