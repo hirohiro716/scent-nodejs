@@ -24,7 +24,10 @@ export default abstract class RecordSearcher<C extends Connector<any, any>> {
     /**
      * 接続に使用するデータベースインスタンス。
      */
-    public get connector(): C | null {
+    public get connector(): C {
+        if (this._connector == null) {
+            throw new Error("The connector is null.");
+        }
         return this._connector;
     }
 

@@ -21,6 +21,9 @@ export default class RecordBinder {
      * 接続に使用するデータベースインスタンス。
      */
     get connector() {
+        if (this._connector == null) {
+            throw new Error("The connector is null.");
+        }
         return this._connector;
     }
     set connector(connector) {

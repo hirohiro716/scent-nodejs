@@ -17,7 +17,7 @@ export default abstract class RecordSearcher<C extends Connector<any, any>> {
     /**
      * 接続に使用するデータベースインスタンス。
      */
-    get connector(): C | null;
+    get connector(): C;
     set connector(connector: C);
     /**
      * レコードが保存されているテーブルを取得する。
