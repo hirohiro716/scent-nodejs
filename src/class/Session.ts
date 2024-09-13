@@ -27,16 +27,26 @@ export default abstract class Session {
     }
 
     /**
-     * 指定されたIDに該当するセッション情報を記憶媒体から削除する。
+     * 指定されたセッションID、JSONデータを記憶媒体に保存する。
      * 
      * @param id 
+     * @param jsonData 
+     * @param oldID 古いセッションID。
      */
-    protected abstract deleteFromStorage(id: string): Promise<void>;
+    protected abstract saveToStorage(id: string, jsonData: string, oldID: string | undefined): Promise<void>;
 
     /**
-     * 期限が切れたセッション情報を記憶媒体から削除する。このメソッドはloadメソッド実行時に自動的に呼び出される。
+     * セッションデータを保存してセッションIDを返す。
+     * 
+     * @returns
      */
-    protected abstract removeExpiredSessions(): Promise<void>;
+    public async save(): Promise<string> {
+        const newID = StringObject.secureRandom(64).toString();
+        if (typeof this._data !== "undefined") {
+            await this.saveToStorage(newID, JSON.stringify(Object.fromEntries(this._data)), this._id);
+        }
+        return newID;
+    }
 
     /**
      * 指定されたセッションIDに該当するJSONデータを記憶媒体から取得する。
@@ -62,24 +72,14 @@ export default abstract class Session {
     }
 
     /**
-     * 指定されたセッションID、JSONデータを記憶媒体に保存する。
+     * 指定されたIDに該当するセッション情報を記憶媒体から削除する。
      * 
      * @param id 
-     * @param jsonData 
-     * @param oldID 古いセッションID。
      */
-    protected abstract saveToStorage(id: string, jsonData: string, oldID: string | undefined): Promise<void>;
+    protected abstract deleteFromStorage(id: string): Promise<void>;
 
     /**
-     * セッションデータを保存してセッションIDを返す。
-     * 
-     * @returns
+     * 期限が切れたセッション情報を記憶媒体から削除する。このメソッドはloadメソッド実行時に自動的に呼び出される。
      */
-    public async save(): Promise<string> {
-        const newID = StringObject.secureRandom(64).toString();
-        if (typeof this._data !== "undefined") {
-            await this.saveToStorage(newID, JSON.stringify(Object.fromEntries(this._data)), this._id);
-        }
-        return newID;
-    }
+    protected abstract removeExpiredSessions(): Promise<void>;
 }

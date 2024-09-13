@@ -19,6 +19,18 @@ export default class Session {
         return this._data;
     }
     /**
+     * セッションデータを保存してセッションIDを返す。
+     *
+     * @returns
+     */
+    async save() {
+        const newID = StringObject.secureRandom(64).toString();
+        if (typeof this._data !== "undefined") {
+            await this.saveToStorage(newID, JSON.stringify(Object.fromEntries(this._data)), this._id);
+        }
+        return newID;
+    }
+    /**
      * 指定されたIDに該当するセッションデータを読み込む。
      *
      * @param id
@@ -32,17 +44,5 @@ export default class Session {
         }
         catch (error) {
         }
-    }
-    /**
-     * セッションデータを保存してセッションIDを返す。
-     *
-     * @returns
-     */
-    async save() {
-        const newID = StringObject.secureRandom(64).toString();
-        if (typeof this._data !== "undefined") {
-            await this.saveToStorage(newID, JSON.stringify(Object.fromEntries(this._data)), this._id);
-        }
-        return newID;
     }
 }
