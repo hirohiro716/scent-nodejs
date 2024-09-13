@@ -13,13 +13,18 @@ export default abstract class Session {
      */
     get data(): Map<string, any>;
     /**
+     * 指定されたIDに該当するセッション情報を記憶媒体から削除する。このメソッドはsaveメソッド実行時に自動的に呼び出され、古いセッション情報の削除に使用される。
+     *
+     * @param id
+     */
+    protected abstract deleteFromStorage(id: string): Promise<void>;
+    /**
      * 指定されたセッションID、JSONデータを記憶媒体に保存する。
      *
      * @param id
      * @param jsonData
-     * @param oldID 古いセッションID。
      */
-    protected abstract saveToStorage(id: string, jsonData: string, oldID: string | undefined): Promise<void>;
+    protected abstract saveToStorage(id: string, jsonData: string): Promise<void>;
     /**
      * セッションデータを保存してセッションIDを返す。
      *
@@ -34,19 +39,13 @@ export default abstract class Session {
      */
     protected abstract loadFromStorage(id: string): Promise<string>;
     /**
+     * 期限が切れたセッション情報を記憶媒体から削除する。このメソッドはloadメソッド実行時に自動的に呼び出される。
+     */
+    protected abstract removeExpiredSessions(): Promise<void>;
+    /**
      * 指定されたIDに該当するセッションデータを読み込む。
      *
      * @param id
      */
     load(id: string): Promise<void>;
-    /**
-     * 指定されたIDに該当するセッション情報を記憶媒体から削除する。
-     *
-     * @param id
-     */
-    protected abstract deleteFromStorage(id: string): Promise<void>;
-    /**
-     * 期限が切れたセッション情報を記憶媒体から削除する。このメソッドはloadメソッド実行時に自動的に呼び出される。
-     */
-    protected abstract removeExpiredSessions(): Promise<void>;
 }

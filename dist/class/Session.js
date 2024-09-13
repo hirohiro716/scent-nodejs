@@ -25,8 +25,11 @@ export default class Session {
      */
     async save() {
         const newID = StringObject.secureRandom(64).toString();
+        if (typeof this._id !== "undefined") {
+            await this.deleteFromStorage(this._id);
+        }
         if (typeof this._data !== "undefined") {
-            await this.saveToStorage(newID, JSON.stringify(Object.fromEntries(this._data)), this._id);
+            await this.saveToStorage(newID, JSON.stringify(Object.fromEntries(this._data)));
         }
         return newID;
     }
