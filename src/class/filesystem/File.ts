@@ -3,6 +3,7 @@ import FilesystemItem from "./FilesystemItem.js";
 import fs from "fs";
 import Directory from "./Directory.js";
 import { ByteArray, StringObject } from "scent-typescript";
+import { StringDecoder } from "string_decoder";
 
 /**
  * ファイルのクラス。
@@ -156,6 +157,29 @@ export default class File extends FilesystemItem {
             if (result) {
                 resolve();
             }
+        });
+    }
+
+    /**
+     * ファイルの内容をテキストとして読み込む。
+     * 
+     * @param bufferEncoding
+     * @returns
+     */
+    public readTextContent(bufferEncoding: BufferEncoding = "utf-8"): Promise<string> {
+        const readable = this.createReadStream(undefined, bufferEncoding);
+        const decoder = new StringDecoder(bufferEncoding);
+        return new Promise<string>((resolve, reject) => {
+            const value = new StringObject();
+            readable.on("end", () => {
+                resolve(value.toString());
+            });
+            readable.on("error", (error) => {
+                reject(error);
+            });
+            readable.on("data", (chunk) => {
+                value.append(decoder.write(chunk));
+            });
         });
     }
 }

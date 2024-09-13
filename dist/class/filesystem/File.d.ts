@@ -81,4 +81,11 @@ export default class File extends FilesystemItem {
      * @param highWaterMark
      */
     writeByteArray(byteArray: ByteArray, highWaterMark?: number): Promise<void>;
+    /**
+     * ファイルの内容をテキストとして読み込む。
+     *
+     * @param bufferEncoding
+     * @returns
+     */
+    readTextContent(bufferEncoding?: BufferEncoding): Promise<string>;
 }
