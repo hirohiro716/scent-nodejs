@@ -52,7 +52,7 @@ class CSV {
      * @param writable
      */
     write(writable) {
-        let writing = [...this._rows];
+        const writing = [...this._rows];
         if (this._headers) {
             writing.unshift(this._headers);
         }
@@ -104,7 +104,7 @@ class CSV {
         const decoder = new StringDecoder("utf-8");
         return new Promise((resolve, reject) => {
             let row = [];
-            let value = new StringObject();
+            const value = new StringObject();
             let withinString = false;
             let stringMaybeEnd = false;
             const parse = (one) => {

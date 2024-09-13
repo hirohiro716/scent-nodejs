@@ -71,7 +71,7 @@ export default class CSV {
      * @param writable 
      */
     public write(writable: Writable): Promise<void> {
-        let writing: string[][] = [...this._rows];
+        const writing: string[][] = [...this._rows];
         if (this._headers) {
             writing.unshift(this._headers);
         }
@@ -124,7 +124,7 @@ export default class CSV {
         const decoder = new StringDecoder("utf-8");
         return new Promise<void>((resolve, reject) => {
             let row: string[] = [];
-            let value = new StringObject();
+            const value = new StringObject();
             let withinString = false;
             let stringMaybeEnd = false;
             const parse: (one: string) => void = (one): void => {
