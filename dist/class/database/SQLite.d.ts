@@ -14,31 +14,6 @@ export declare namespace SQLite {
         databaseFile: File;
     };
     /**
-     * トランザクションの分離レベル列挙型。
-     */
-    enum IsolationLevel {
-        /**
-         * 最初のデータベースへのアクセス(SELECTやUPDATEなど)が発生した際にロックが取得されます。
-         * SELECTが最初の操作なら共有ロックが取得され、データを読み取ることができますが、書き込みはまだできません。
-         * INSERT、UPDATE、DELETEなどの書き込み操作が行われたときに、SQLiteは排他ロックを取得します。
-         */
-        deferred = "deferred",
-        /**
-         * トランザクションの開始時点で即座に予約ロック(後に書き込みをする意図があるロック)が取得されます。
-         * 予約ロックは、他のトランザクションがデータベースへの書き込みを行うことを防ぎますが、
-         * 他のトランザクションはまだデータの読み取りを行うことができます(共有ロックは許可されます)。
-         * トランザクション内で実際にデータの書き込みが発生した場合に、SQLiteは排他ロックにエスカレートします。
-         */
-        immediate = "immediate",
-        /**
-         * トランザクションの開始時に、データベース全体に対する排他ロックが即座に取得されます。
-         * このロックにより、他のトランザクションは読み取りも書き込みもできなくなります。
-         * トランザクションが終了するまで、他のプロセスやスレッドがデータベースにアクセスできないため、
-         * 他のトランザクションを完全にブロックします。
-        */
-        exclusive = "exclusive"
-    }
-    /**
      * SQLiteへの接続をプールするクラス。
      */
     export class Pool extends ParentPool<void, ConnectionParameters, sqlite3.Database> {
@@ -73,6 +48,7 @@ export declare namespace SQLite {
          */
         constructor(connectionParameters: ConnectionParameters);
         private _errorOccurred;
+        private readonly errorEventListener;
         get errorOccurred(): boolean;
         protected borrowDelegateFromPool(): Promise<sqlite3.Database>;
         protected releaseDelegateToPool(): Promise<void>;
@@ -226,4 +202,29 @@ export declare namespace SQLite {
         forciblyCloseByConnector(connector: Connector): Promise<void>;
     }
     export {};
+}
+/**
+ * トランザクションの分離レベル列挙型。
+ */
+export declare enum IsolationLevel {
+    /**
+     * 最初のデータベースへのアクセス(SELECTやUPDATEなど)が発生した際にロックが取得されます。
+     * SELECTが最初の操作なら共有ロックが取得され、データを読み取ることができますが、書き込みはまだできません。
+     * INSERT、UPDATE、DELETEなどの書き込み操作が行われたときに、SQLiteは排他ロックを取得します。
+     */
+    deferred = "deferred",
+    /**
+     * トランザクションの開始時点で即座に予約ロック(後に書き込みをする意図があるロック)が取得されます。
+     * 予約ロックは、他のトランザクションがデータベースへの書き込みを行うことを防ぎますが、
+     * 他のトランザクションはまだデータの読み取りを行うことができます(共有ロックは許可されます)。
+     * トランザクション内で実際にデータの書き込みが発生した場合に、SQLiteは排他ロックにエスカレートします。
+     */
+    immediate = "immediate",
+    /**
+     * トランザクションの開始時に、データベース全体に対する排他ロックが即座に取得されます。
+     * このロックにより、他のトランザクションは読み取りも書き込みもできなくなります。
+     * トランザクションが終了するまで、他のプロセスやスレッドがデータベースにアクセスできないため、
+     * 他のトランザクションを完全にブロックします。
+    */
+    exclusive = "exclusive"
 }
