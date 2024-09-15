@@ -49,7 +49,10 @@ export default abstract class Session {
     public async save(): Promise<string> {
         const newID = StringObject.secureRandom(64).toString();
         if (typeof this._id !== "undefined") {
-            await this.deleteFromStorage(this._id);
+            try {
+                await this.deleteFromStorage(this._id);
+            } catch (error: any) {
+            }
         }
         if (typeof this._data !== "undefined") {
             await this.saveToStorage(newID, JSON.stringify(Object.fromEntries(this._data)));
