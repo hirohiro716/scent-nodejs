@@ -48,8 +48,8 @@ export declare namespace SQLite {
          */
         constructor(connectionParameters: ConnectionParameters);
         private _errorOccurred;
-        private readonly errorEventListener;
         get errorOccurred(): boolean;
+        private static readonly errorMonitoringDelegates;
         protected borrowDelegateFromPool(): Promise<sqlite3.Database>;
         protected releaseDelegateToPool(): Promise<void>;
         protected setStatementTimeoutToDelegate(milliseconds: number): Promise<void>;

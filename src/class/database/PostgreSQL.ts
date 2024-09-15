@@ -92,6 +92,8 @@ export namespace PostgreSQL {
             return this._errorOccurred;
         }
 
+        private static readonly errorMonitoringDelegates: pg.PoolClient[] = [];
+
         protected async borrowDelegateFromPool(): Promise<pg.PoolClient> {
             let pool = Pool.get(this.connectionParameters);
             if (typeof pool === "undefined") {
@@ -99,9 +101,12 @@ export namespace PostgreSQL {
                 Pool.put(this.connectionParameters, pool);
             }
             const delegate: pg.PoolClient = await pool.borrowConnectorDelegate();
-            delegate.addListener("error", () => {
-                this._errorOccurred = true;
-            });
+            if (Connector.errorMonitoringDelegates.includes(delegate) === false) {
+                delegate.addListener("error", () => {
+                    this._errorOccurred = true;
+                });
+                Connector.errorMonitoringDelegates.push(delegate);
+            }
             return delegate;
         }
 

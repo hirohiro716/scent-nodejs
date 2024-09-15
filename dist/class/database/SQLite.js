@@ -132,9 +132,6 @@ export var SQLite;
         constructor(connectionParameters) {
             super(connectionParameters);
             this._errorOccurred = false;
-            this.errorEventListener = () => {
-                this._errorOccurred = true;
-            };
             this._isTransactionBegun = false;
             this._isolationLevel = null;
         }
@@ -148,8 +145,11 @@ export var SQLite;
                 Pool.put(this.connectionParameters, pool);
             }
             const delegate = await pool.borrowConnectorDelegate();
-            if (delegate.listeners("error").includes(this.errorEventListener) === false) {
-                delegate.addListener("error", this.errorEventListener);
+            if (Connector.errorMonitoringDelegates.includes(delegate) === false) {
+                delegate.addListener("error", () => {
+                    this._errorOccurred = true;
+                });
+                Connector.errorMonitoringDelegates.push(delegate);
             }
             return delegate;
         }
@@ -322,6 +322,7 @@ export var SQLite;
             return new DatabaseError(error.message, error.errno);
         }
     }
+    Connector.errorMonitoringDelegates = [];
     SQLite.Connector = Connector;
     /**
      * データベースのレコードとオブジェクトをバインドするための抽象クラス。

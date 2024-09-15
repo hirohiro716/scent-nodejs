@@ -147,13 +147,11 @@ export namespace SQLite {
 
         private _errorOccurred: boolean = false;
 
-        private readonly errorEventListener = () => {
-            this._errorOccurred = true;
-        };
-
         public get errorOccurred(): boolean {
             return this._errorOccurred;
         }
+
+        private static readonly errorMonitoringDelegates: sqlite3.Database[] = [];
 
         protected async borrowDelegateFromPool(): Promise<sqlite3.Database> {
             let pool = Pool.get(this.connectionParameters);
@@ -162,8 +160,11 @@ export namespace SQLite {
                 Pool.put(this.connectionParameters, pool);
             }
             const delegate: sqlite3.Database = await pool.borrowConnectorDelegate();
-            if ( delegate.listeners("error").includes(this.errorEventListener) === false) {
-                delegate.addListener("error", this.errorEventListener);
+            if (Connector.errorMonitoringDelegates.includes(delegate) === false) {
+                delegate.addListener("error", () => {
+                    this._errorOccurred = true;
+                });
+                Connector.errorMonitoringDelegates.push(delegate);
             }
             return delegate;
         }

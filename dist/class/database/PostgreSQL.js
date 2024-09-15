@@ -84,9 +84,12 @@ export var PostgreSQL;
                 Pool.put(this.connectionParameters, pool);
             }
             const delegate = await pool.borrowConnectorDelegate();
-            delegate.addListener("error", () => {
-                this._errorOccurred = true;
-            });
+            if (Connector.errorMonitoringDelegates.includes(delegate) === false) {
+                delegate.addListener("error", () => {
+                    this._errorOccurred = true;
+                });
+                Connector.errorMonitoringDelegates.push(delegate);
+            }
             return delegate;
         }
         async releaseDelegateToPool() {
@@ -270,6 +273,7 @@ export var PostgreSQL;
             return new DatabaseError(error.message, error.code);
         }
     }
+    Connector.errorMonitoringDelegates = [];
     PostgreSQL.Connector = Connector;
     /**
      * データベースのレコードとオブジェクトをバインドするための抽象クラス。
