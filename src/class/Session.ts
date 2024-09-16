@@ -1,4 +1,4 @@
-import { StringObject } from "scent-typescript";
+import { Property, StringObject } from "scent-typescript";
 
 /**
  * セッションの抽象クラス。
@@ -86,5 +86,33 @@ export default abstract class Session {
             this._id = id;
         } catch (error :any) {
         }
+    }
+
+    /**
+     * トークンに使用するプロパティを取得する。
+     */
+    public abstract getTokenProperty(): Property;
+
+    /**
+     * クロスサイトリクエストフォージェリ(CSRF)対策のトークンを発行する。
+     * 
+     * @returns 
+     */
+    public issueToken(): string {
+        const token = StringObject.secureRandom(64);
+        this.data.set(this.getTokenProperty().physicalName, token.toString());
+        return token.toString();
+    }
+
+    /**
+     * 指定されたトークンと前回発行したトークンが一致する場合はtrueを返す。
+     * 
+     * @param token 
+     */
+    public validToken(token: string): boolean {
+        if (typeof this._data !== "undefined") {
+            return StringObject.from(this._data.get(this.getTokenProperty().physicalName)).equals(token);
+        }
+        return false;
     }
 }

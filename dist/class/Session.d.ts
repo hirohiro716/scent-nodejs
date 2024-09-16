@@ -1,3 +1,4 @@
+import { Property } from "scent-typescript";
 /**
  * セッションの抽象クラス。
  */
@@ -48,4 +49,20 @@ export default abstract class Session {
      * @param id
      */
     load(id: string): Promise<void>;
+    /**
+     * トークンに使用するプロパティを取得する。
+     */
+    abstract getTokenProperty(): Property;
+    /**
+     * クロスサイトリクエストフォージェリ(CSRF)対策のトークンを発行する。
+     *
+     * @returns
+     */
+    issueToken(): string;
+    /**
+     * 指定されたトークンと前回発行したトークンが一致する場合はtrueを返す。
+     *
+     * @param token
+     */
+    validToken(token: string): boolean;
 }

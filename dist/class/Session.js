@@ -52,4 +52,25 @@ export default class Session {
         catch (error) {
         }
     }
+    /**
+     * クロスサイトリクエストフォージェリ(CSRF)対策のトークンを発行する。
+     *
+     * @returns
+     */
+    issueToken() {
+        const token = StringObject.secureRandom(64);
+        this.data.set(this.getTokenProperty().physicalName, token.toString());
+        return token.toString();
+    }
+    /**
+     * 指定されたトークンと前回発行したトークンが一致する場合はtrueを返す。
+     *
+     * @param token
+     */
+    validToken(token) {
+        if (typeof this._data !== "undefined") {
+            return StringObject.from(this._data.get(this.getTokenProperty().physicalName)).equals(token);
+        }
+        return false;
+    }
 }
