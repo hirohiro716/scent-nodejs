@@ -109,7 +109,7 @@ export default abstract class Session {
      * 
      * @param token 
      */
-    public validToken(token: string): boolean {
+    public isValidToken(token: string): boolean {
         if (typeof this._data !== "undefined") {
             return StringObject.from(this._data.get(this.getTokenProperty().physicalName)).equals(token);
         }

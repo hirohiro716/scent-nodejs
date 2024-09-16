@@ -64,5 +64,5 @@ export default abstract class Session {
      *
      * @param token
      */
-    validToken(token: string): boolean;
+    isValidToken(token: string): boolean;
 }

@@ -67,7 +67,7 @@ export default class Session {
      *
      * @param token
      */
-    validToken(token) {
+    isValidToken(token) {
         if (typeof this._data !== "undefined") {
             return StringObject.from(this._data.get(this.getTokenProperty().physicalName)).equals(token);
         }
