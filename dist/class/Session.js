@@ -19,11 +19,11 @@ export default class Session {
         return this._data;
     }
     /**
-     * セッションデータを保存してセッションIDを返す。
+     * セッションデータを保存してセッションIDを取得する。
      *
      * @returns
      */
-    async save() {
+    async saveAndGetID() {
         const newID = StringObject.secureRandom(64).toString();
         if (typeof this._id !== "undefined") {
             try {
@@ -42,7 +42,7 @@ export default class Session {
      *
      * @param id
      */
-    async load(id) {
+    async loadFromID(id) {
         await this.removeExpiredSessions();
         const json = await this.loadFromStorage(id);
         try {

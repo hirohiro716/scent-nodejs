@@ -20,20 +20,26 @@ export default abstract class Session {
      */
     protected abstract deleteFromStorage(id: string): Promise<void>;
     /**
-     * 指定されたセッションID、JSONデータを記憶媒体に保存する。
+     * 指定されたセッションID、JSONデータを記憶媒体に保存する。このメソッドはsaveメソッド実行時に自動的に呼び出される。
      *
      * @param id
      * @param jsonData
      */
     protected abstract saveToStorage(id: string, jsonData: string): Promise<void>;
     /**
-     * セッションデータを保存してセッションIDを返す。
+     * セッションデータを保存してセッションIDを取得する。
      *
      * @returns
      */
-    save(): Promise<string>;
+    protected saveAndGetID(): Promise<string>;
     /**
-     * 指定されたセッションIDに該当するJSONデータを記憶媒体から取得する。
+     * セッションデータを保存してセッションIDを指定されたリソースに保存する。
+     *
+     * @param resource
+     */
+    abstract save(resource: any): Promise<void>;
+    /**
+     * 指定されたセッションIDに該当するJSONデータを記憶媒体から取得する。このメソッドはloadメソッド実行時に自動的に呼び出される。
      *
      * @param id
      * @returns
@@ -48,7 +54,13 @@ export default abstract class Session {
      *
      * @param id
      */
-    load(id: string): Promise<void>;
+    protected loadFromID(id: string): Promise<void>;
+    /**
+     * セッションデータを保存してセッションIDを指定されたリソースに保存する。
+     *
+     * @param resource
+     */
+    abstract load(resource: any): Promise<void>;
     /**
      * トークンに使用するプロパティを取得する。
      */

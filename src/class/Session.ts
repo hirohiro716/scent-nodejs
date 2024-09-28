@@ -34,7 +34,7 @@ export default abstract class Session {
     protected abstract deleteFromStorage(id: string): Promise<void>;
 
     /**
-     * 指定されたセッションID、JSONデータを記憶媒体に保存する。
+     * 指定されたセッションID、JSONデータを記憶媒体に保存する。このメソッドはsaveメソッド実行時に自動的に呼び出される。
      * 
      * @param id 
      * @param jsonData 
@@ -42,11 +42,11 @@ export default abstract class Session {
     protected abstract saveToStorage(id: string, jsonData: string): Promise<void>;
 
     /**
-     * セッションデータを保存してセッションIDを返す。
+     * セッションデータを保存してセッションIDを取得する。
      * 
      * @returns
      */
-    public async save(): Promise<string> {
+    protected async saveAndGetID(): Promise<string> {
         const newID = StringObject.secureRandom(64).toString();
         if (typeof this._id !== "undefined") {
             try {
@@ -61,7 +61,14 @@ export default abstract class Session {
     }
 
     /**
-     * 指定されたセッションIDに該当するJSONデータを記憶媒体から取得する。
+     * セッションデータを保存してセッションIDを指定されたリソースに保存する。
+     * 
+     * @param resource 
+     */
+    public abstract save(resource: any): Promise<void>;
+
+    /**
+     * 指定されたセッションIDに該当するJSONデータを記憶媒体から取得する。このメソッドはloadメソッド実行時に自動的に呼び出される。
      * 
      * @param id 
      * @returns
@@ -78,7 +85,7 @@ export default abstract class Session {
      * 
      * @param id 
      */
-    public async load(id: string): Promise<void> {
+    protected async loadFromID(id: string): Promise<void> {
         await this.removeExpiredSessions();
         const json = await this.loadFromStorage(id);
         try {
@@ -87,6 +94,13 @@ export default abstract class Session {
         } catch (error :any) {
         }
     }
+
+    /**
+     * セッションデータを保存してセッションIDを指定されたリソースに保存する。
+     * 
+     * @param resource 
+     */
+    public abstract load(resource: any): Promise<void>;
 
     /**
      * トークンに使用するプロパティを取得する。
