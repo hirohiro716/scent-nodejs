@@ -23,7 +23,7 @@ export default class Hasher {
      * @param target
      * @returns
      */
-    hash(target: string): Promise<string>;
+    hash(target: string): string;
     /**
      * ハッシュ化に使用できるアルゴリズムを取得する。
      *

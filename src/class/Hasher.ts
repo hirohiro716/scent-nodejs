@@ -36,7 +36,7 @@ export default class Hasher {
      * @param target 
      * @returns 
      */
-    public async hash(target: string): Promise<string> {
+    public hash(target: string): string {
         const hash = Crypto.createHash(this._algorithm);
         hash.update(target);
         return hash.digest("hex");

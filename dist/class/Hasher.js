@@ -29,7 +29,7 @@ export default class Hasher {
      * @param target
      * @returns
      */
-    async hash(target) {
+    hash(target) {
         const hash = Crypto.createHash(this._algorithm);
         hash.update(target);
         return hash.digest("hex");
