@@ -1,43 +1,79 @@
+import { default as Crypto } from "crypto";
+import { ByteArray } from "scent-typescript";
 /**
- * 文字列を暗号化するクラス。
+ * 暗号化されたデータの型。
+ *
+ * @property content 内容。
+ * @property iv 初期ベクトル。
+ * @property authTag 認証タグ。
  */
-export default class Encrypter {
-    private readonly algorithm;
-    private readonly keyLength;
-    private readonly ivLength;
+export type EncryptedData = {
+    content: ByteArray;
+    iv: ByteArray;
+    authTag?: ByteArray;
+};
+/**
+ * データを暗号化するクラス。
+ *
+ * @author hiro
+ */
+export declare class Encrypter {
     /**
-     * 指定された文字列を暗号化する。
+     * コンストラクタ。
+     * 使用するアルゴリズムを指定する。
      *
-     * @param target
-     * @returns
+     * @param algorithm
+     * @param password 使用するパスワード。
+     * @param salt 使用するソルト。
      */
-    encrypt(target: string, key?: string): string;
+    constructor(algorithm: Crypto.CipherCCMTypes | Crypto.CipherOCBTypes | Crypto.CipherGCMTypes, password: string, salt: string);
+    /**
+     * コンストラクタ。
+     * 使用するアルゴリズムを指定する。
+     *
+     * @param algorithm
+     * @param key 使用する共通鍵。未指定の場合は自動生成される。
+     */
+    constructor(algorithm: Crypto.CipherCCMTypes | Crypto.CipherOCBTypes | Crypto.CipherGCMTypes, key?: ByteArray);
+    /**
+     * コンストラクタ。
+     * 使用するアルゴリズムを指定する。共通鍵は自動生成される。
+     *
+     * @param algorithm
+     */
+    constructor(algorithm: Crypto.CipherCCMTypes | Crypto.CipherOCBTypes | Crypto.CipherGCMTypes);
+    private readonly _algorithm;
     private _key;
     /**
-     * encryptメソッドの実行時に自動生成される。
+     * このインスタンスの共通鍵。
      */
-    get key(): string | undefined;
-    set key(key: string | undefined);
-    private _iv;
+    get key(): ByteArray | undefined;
+    private _cipherInfo;
     /**
-     * encryptメソッドの実行時に自動生成される。
+     * このインスタンスで使用される共通鍵の長さ。
      */
-    get iv(): string | undefined;
-    set iv(iv: string | undefined);
-    private _authTag;
+    get keyLength(): number;
     /**
-     * encryptメソッドの実行時に自動生成される。
+     * このインスタンスで使用される初期ベクトルの長さ。
      */
-    get authTag(): string | undefined;
-    set authTag(authTag: string | undefined);
+    get ivLength(): number | undefined;
+    private _authTagLength;
     /**
-     * 暗号化時に使用したキー、iv、認証タグを使用して、指定された文字列を復号化する。
+     * このインスタンスで使用される認証タグの長さ。初期値は16バイト。
+     */
+    get authTagLength(): number;
+    set authTagLength(length: number);
+    /**
+     * 指定されたデータを暗号化する。
      *
-     * @param target
-     * @param key
-     * @param iv
-     * @param authTag
+     * @param data
      * @returns
      */
-    decrypt(target: string, key: string, iv: string, authTag: string): string;
+    encrypt(data: Uint8Array): EncryptedData;
+    /**
+     * 暗号化されたデータを復号化する。
+     *
+     * @param encryptedData
+     */
+    decrypt(encryptedData: EncryptedData): Uint8Array;
 }

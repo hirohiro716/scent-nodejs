@@ -6,7 +6,7 @@ import CSV from "./class/io/CSV.js";
 import { FormParser, FormParseResult } from "./class/io/FormParser.js";
 import Session from "./class/Session.js";
 import QRCode from "./class/graphic/QRCode.js";
-import Encrypter from "./class/Encrypter.js";
+import { Encrypter } from "./class/Encrypter.js";
 import { Comparison, Comparisons } from "./class/database/Comparison.js";
 import { WhereSet, Where } from "./class/database/WhereSet.js";
 import Pool from "./class/database/Pool.js";

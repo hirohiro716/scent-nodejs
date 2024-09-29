@@ -11,7 +11,7 @@ import Session from "./class/Session.js";
 
 import QRCode from "./class/graphic/QRCode.js";
 
-import Encrypter from "./class/Encrypter.js";
+import { Encrypter, EncryptedData } from "./class/Encrypter.js";
 
 import { Comparison, Comparisons } from "./class/database/Comparison.js";
 import { WhereSet, Where } from "./class/database/WhereSet.js";
@@ -24,6 +24,10 @@ import { SQLite, IsolationLevel } from "./class/database/SQLite.js";
 import DatabaseError from "./class/database/DatabaseError.js";
 import DataNotFoundError from "./class/database/DataNotFoundError.js";
 import Prisma from "./class/database/Prisma.js";
+
+export type {
+    EncryptedData,
+}
 
 export {
     FilesystemItem, File, ImageFile, Directory,

@@ -1,73 +1,100 @@
-import crypto from "crypto";
+import { default as Crypto } from "crypto";
+import { ByteArray } from "scent-typescript";
 /**
- * 文字列を暗号化するクラス。
+ * データを暗号化するクラス。
+ *
+ * @author hiro
  */
-export default class Encrypter {
-    constructor() {
-        this.algorithm = "aes-256-gcm";
-        this.keyLength = 32;
-        this.ivLength = 12;
-    }
+export class Encrypter {
     /**
-     * 指定された文字列を暗号化する。
-     *
-     * @param target
-     * @returns
+     * @deprecated
      */
-    encrypt(target, key) {
-        if (typeof key !== "undefined") {
-            this._key = Buffer.from(key, "hex").subarray(0, this.keyLength).toString("hex");
+    constructor(algorithm, passwordOrKey, salt) {
+        this._key = undefined;
+        this._authTagLength = 16;
+        const cipherInfo = Crypto.getCipherInfo(algorithm);
+        if (typeof cipherInfo === "undefined" || typeof cipherInfo.ivLength === "undefined") {
+            throw new Error("Could not find the specified algorithm.");
         }
-        else {
-            this._key = crypto.randomBytes(this.keyLength).toString("hex");
+        this._algorithm = algorithm;
+        this._cipherInfo = cipherInfo;
+        if (typeof passwordOrKey !== "undefined") {
+            if (passwordOrKey instanceof ByteArray) {
+                this._key = passwordOrKey;
+            }
+            else if (typeof salt !== "undefined") {
+                this._key = new ByteArray(Crypto.scryptSync(passwordOrKey, salt, cipherInfo.keyLength));
+            }
         }
-        this._iv = crypto.randomBytes(this.ivLength).toString("hex");
-        const cipher = crypto.createCipheriv(this.algorithm, Buffer.from(this._key, "hex"), Buffer.from(this._iv, "hex"));
-        let encrypted = cipher.update(target, "utf-8", "hex");
-        encrypted += cipher.final("hex");
-        this._authTag = cipher.getAuthTag().toString("hex");
-        return encrypted;
     }
     /**
-     * encryptメソッドの実行時に自動生成される。
+     * このインスタンスの共通鍵。
      */
     get key() {
         return this._key;
     }
-    set key(key) {
-        this._key = key;
-    }
     /**
-     * encryptメソッドの実行時に自動生成される。
+     * このインスタンスで使用される共通鍵の長さ。
      */
-    get iv() {
-        return this._iv;
-    }
-    set iv(iv) {
-        this._iv = iv;
+    get keyLength() {
+        return this._cipherInfo.keyLength;
     }
     /**
-     * encryptメソッドの実行時に自動生成される。
+     * このインスタンスで使用される初期ベクトルの長さ。
      */
-    get authTag() {
-        return this._authTag;
-    }
-    set authTag(authTag) {
-        this._authTag = authTag;
+    get ivLength() {
+        return this._cipherInfo.ivLength;
     }
     /**
-     * 暗号化時に使用したキー、iv、認証タグを使用して、指定された文字列を復号化する。
+     * このインスタンスで使用される認証タグの長さ。初期値は16バイト。
+     */
+    get authTagLength() {
+        return this._authTagLength;
+    }
+    set authTagLength(length) {
+        this._authTagLength = length;
+    }
+    /**
+     * 指定されたデータを暗号化する。
      *
-     * @param target
-     * @param key
-     * @param iv
-     * @param authTag
+     * @param data
      * @returns
      */
-    decrypt(target, key, iv, authTag) {
-        const decipher = crypto.createDecipheriv(this.algorithm, Buffer.from(key, "hex"), Buffer.from(iv, "hex"));
-        decipher.setAuthTag(Buffer.from(authTag, "hex"));
-        const decrypted = decipher.update(target, "hex", "utf-8");
-        return decrypted + decipher.final("utf-8");
+    encrypt(data) {
+        if (typeof this._key === "undefined") {
+            this._key = new ByteArray(Crypto.randomBytes(this._cipherInfo.keyLength));
+        }
+        const iv = Crypto.randomBytes(this._cipherInfo.ivLength);
+        const options = { authTagLength: this._authTagLength };
+        const cipher = Crypto.createCipheriv(this._algorithm, this._key.uint8Array, iv, options);
+        const encrypted = Buffer.concat([cipher.update(data), cipher.final()]);
+        let authTag = undefined;
+        const cipherObject = cipher;
+        if (typeof cipherObject.getAuthTag === "function") {
+            authTag = new ByteArray(cipherObject.getAuthTag());
+        }
+        return {
+            content: new ByteArray(encrypted),
+            iv: new ByteArray(iv),
+            authTag: authTag,
+        };
+    }
+    /**
+     * 暗号化されたデータを復号化する。
+     *
+     * @param encryptedData
+     */
+    decrypt(encryptedData) {
+        if (typeof this._key === "undefined") {
+            this._key = new ByteArray(Crypto.randomBytes(this._cipherInfo.keyLength));
+        }
+        const options = { authTagLength: this._authTagLength };
+        const decipher = Crypto.createDecipheriv(this._algorithm, this._key.uint8Array, encryptedData.iv.uint8Array, options);
+        const decipherObject = decipher;
+        if (typeof encryptedData.authTag !== "undefined" && typeof decipherObject.setAuthTag === "function") {
+            decipherObject.setAuthTag(encryptedData.authTag.uint8Array);
+        }
+        const decrypted = Buffer.concat([decipher.update(encryptedData.content.uint8Array), decipher.final()]);
+        return decrypted;
     }
 }
