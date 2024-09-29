@@ -12,6 +12,7 @@ import Session from "./class/Session.js";
 import QRCode from "./class/graphic/QRCode.js";
 
 import { Encrypter, EncryptedData } from "./class/Encrypter.js";
+import Hasher from "./class/Hasher.js";
 
 import { Comparison, Comparisons } from "./class/database/Comparison.js";
 import { WhereSet, Where } from "./class/database/WhereSet.js";
@@ -34,7 +35,7 @@ export {
     CSV, FormParser, FormParseResult,
     Session,
     QRCode,
-    Encrypter,
+    Encrypter, Hasher,
     Comparison, Comparisons, WhereSet, Where,
     Pool, Connector, RecordBinder, SingleRecordBinder, DatabaseError, DataNotFoundError,
     PostgreSQL,
