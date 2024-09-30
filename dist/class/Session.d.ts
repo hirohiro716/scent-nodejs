@@ -72,9 +72,16 @@ export default abstract class Session {
      */
     issueToken(): string;
     /**
-     * 指定されたトークンと前回発行したトークンが一致する場合はtrueを返す。
+     * 指定されたトークン文字列と前回発行したトークンが一致する場合はtrueを返す。
      *
      * @param token
      */
-    isValidToken(token: string): boolean;
+    protected isValidTokenString(token: string): boolean;
+    /**
+     * 指定されたリソースが含むトークンとセッションが前回発行したトークンが一致する場合はtrueを返す。
+     *
+     * @param resource
+     * @returns
+     */
+    abstract isValidToken(resource: any): Promise<boolean>;
 }

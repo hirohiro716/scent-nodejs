@@ -63,11 +63,11 @@ export default class Session {
         return token.toString();
     }
     /**
-     * 指定されたトークンと前回発行したトークンが一致する場合はtrueを返す。
+     * 指定されたトークン文字列と前回発行したトークンが一致する場合はtrueを返す。
      *
      * @param token
      */
-    isValidToken(token) {
+    isValidTokenString(token) {
         if (typeof this._data !== "undefined" && token.length > 0) {
             return StringObject.from(this._data.get(this.getTokenProperty().physicalName)).equals(token);
         }
