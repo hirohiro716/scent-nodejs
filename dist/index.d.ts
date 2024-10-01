@@ -18,6 +18,7 @@ import { PostgreSQL } from "./class/database/PostgreSQL.js";
 import { SQLite, IsolationLevel } from "./class/database/SQLite.js";
 import DatabaseError from "./class/database/DatabaseError.js";
 import DataNotFoundError from "./class/database/DataNotFoundError.js";
+import RecordMapValidationError from "./class/database/RecordMapValidationError.js";
 import Prisma from "./class/database/Prisma.js";
 export type { EncryptedData, };
-export { FilesystemItem, File, ImageFile, Directory, CSV, FormParser, FormParseResult, Session, QRCode, Encrypter, Hasher, Comparison, Comparisons, WhereSet, Where, Pool, Connector, RecordBinder, SingleRecordBinder, DatabaseError, DataNotFoundError, PostgreSQL, SQLite, IsolationLevel, Prisma, };
+export { FilesystemItem, File, ImageFile, Directory, CSV, FormParser, FormParseResult, Session, QRCode, Encrypter, Hasher, Comparison, Comparisons, WhereSet, Where, Pool, Connector, RecordBinder, SingleRecordBinder, DatabaseError, DataNotFoundError, RecordMapValidationError, PostgreSQL, SQLite, IsolationLevel, Prisma, };

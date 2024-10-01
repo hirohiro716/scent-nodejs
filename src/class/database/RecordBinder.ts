@@ -1,7 +1,7 @@
 import Connector from "./Connector.js";
 import { Column, RecordMap, StringObject, Table } from "scent-typescript";
 import { WhereSet } from "./WhereSet.js";
-import { RecordMapValidationError } from "./RecordMapValidationError.js";
+import RecordMapValidationError from "./RecordMapValidationError.js";
 import DatabaseError from "./DatabaseError.js";
 
 /**

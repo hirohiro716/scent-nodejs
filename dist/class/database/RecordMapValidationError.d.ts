@@ -2,7 +2,7 @@ import { Column, ObjectValidationError, RecordMap } from "scent-typescript";
 /**
  * データベースレコードが妥当ではない場合に発生するエラーのクラス。
  */
-export declare class RecordMapValidationError extends Error {
+export default class RecordMapValidationError extends Error {
     /**
      * コンストラクタ。原因となったレコード、カラムとメッセージの連想配列を指定する。
      *
