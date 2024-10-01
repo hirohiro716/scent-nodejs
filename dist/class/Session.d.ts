@@ -76,7 +76,7 @@ export default abstract class Session {
      *
      * @param token
      */
-    protected isValidTokenString(token: string): boolean;
+    protected isValidTokenString(token: string): Promise<boolean>;
     /**
      * 指定されたリソースが含むトークンとセッションが前回発行したトークンが一致する場合はtrueを返す。
      *

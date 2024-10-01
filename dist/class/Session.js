@@ -67,10 +67,13 @@ export default class Session {
      *
      * @param token
      */
-    isValidTokenString(token) {
-        if (typeof this._data !== "undefined" && token.length > 0) {
-            return StringObject.from(this._data.get(this.getTokenProperty().physicalName)).equals(token);
+    async isValidTokenString(token) {
+        let result = false;
+        if (typeof this._id !== "undefined" && typeof this._data !== "undefined" && token.length > 0) {
+            result = StringObject.from(this._data.get(this.getTokenProperty().physicalName)).equals(token);
+            this._data.delete(this.getTokenProperty().physicalName);
+            await this.saveToStorage(this._id, JSON.stringify(Object.fromEntries(this._data)));
         }
-        return false;
+        return result;
     }
 }

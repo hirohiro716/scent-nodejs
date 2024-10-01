@@ -123,11 +123,14 @@ export default abstract class Session {
      * 
      * @param token 
      */
-    protected isValidTokenString(token: string): boolean {
-        if (typeof this._data !== "undefined" && token.length > 0) {
-            return StringObject.from(this._data.get(this.getTokenProperty().physicalName)).equals(token);
+    protected async isValidTokenString(token: string): Promise<boolean> {
+        let result = false;
+        if (typeof this._id !== "undefined" && typeof this._data !== "undefined" && token.length > 0) {
+            result = StringObject.from(this._data.get(this.getTokenProperty().physicalName)).equals(token);
+            this._data.delete(this.getTokenProperty().physicalName);
+            await this.saveToStorage(this._id, JSON.stringify(Object.fromEntries(this._data)));
         }
-        return false;
+        return result;
     }
 
     /**
