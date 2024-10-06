@@ -20,11 +20,12 @@ import Pool from "./class/database/Pool.js";
 import Connector from "./class/database/Connector.js";
 import RecordBinder from "./class/database/RecordBinder.js";
 import SingleRecordBinder from "./class/database/SingleRecordBinder.js";
-import { PostgreSQL } from "./class/database/PostgreSQL.js";
-import { SQLite, IsolationLevel } from "./class/database/SQLite.js";
+import RecordSearcher from "./class/database/RecordSearcher.js";
 import DatabaseError from "./class/database/DatabaseError.js";
 import DataNotFoundError from "./class/database/DataNotFoundError.js";
 import RecordMapValidationError from "./class/database/RecordMapValidationError.js";
+import { PostgreSQL } from "./class/database/PostgreSQL.js";
+import { SQLite, IsolationLevel } from "./class/database/SQLite.js";
 import Prisma from "./class/database/Prisma.js";
 
 export type {
@@ -38,7 +39,7 @@ export {
     QRCode,
     Encrypter, Hasher,
     Comparison, Comparisons, WhereSet, Where,
-    Pool, Connector, RecordBinder, SingleRecordBinder, DatabaseError, DataNotFoundError, RecordMapValidationError,
+    Pool, Connector, RecordBinder, SingleRecordBinder, RecordSearcher, DatabaseError, DataNotFoundError, RecordMapValidationError,
     PostgreSQL,
     SQLite, IsolationLevel,
     Prisma,
