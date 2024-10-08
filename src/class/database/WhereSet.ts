@@ -30,21 +30,59 @@ export class WhereSet {
      * 
      * @param source 
      */
+    public constructor(source: {column: string, comparison: string, is_negate: boolean, values: [{class_name: string, value: null | boolean | string | number}]}[]);
+
+    /**
+     * コンストラクタ。Whereインスタンスを復元するオブジェクトの配列を指定する。
+     * 
+     * @param source 
+     */
     public constructor(source: {column: string, comparison: string, isNegate: boolean, values: null | boolean | string | string[] | number | number[]}[]);
 
     /**
      * @deprecated
      */
-    public constructor(source?: Where[] | {column: string, comparison: string, isNegate: boolean, values: null | boolean | string | string[] | number | number[]}[]) {
+    public constructor(source?: Where[] | {column: string, comparison: string, isNegate: boolean, values: null | boolean | string | string[] | number | number[]}[] | {column: string, comparison: string, is_negate: boolean, values: [{class_name: string, value: null | boolean | string | number}]}[]) {
         this._wheres = [];
         if (typeof source !== "undefined" && source.length > 0) {
             for (const where of source) {
                 if (where instanceof Where) {
                     this._wheres.push(where);
                 } else {
-                    const comparison = Comparison.findComparison(where.comparison);
-                    if (comparison) {
-                        this._wheres.push(new Where(where.column, comparison, where.values, where.isNegate));
+                    if ("isNegate" in where) {
+                        const comparison = Comparison.findComparison(where.comparison);
+                        if (comparison) {
+                            this._wheres.push(new Where(where.column, comparison, where.values, where.isNegate));
+                        }
+                    }
+                    // For scent-java library
+                    if ("is_negate" in where) {
+                        for (const comparison of Object.values(Comparisons)) {
+                            if (StringObject.from(where.comparison).equals(comparison.physicalName)) {
+                                if (where.values.length === 1) {
+                                    this._wheres.push(new Where(where.column, comparison, where.values[0].value, where.is_negate));
+                                } else {
+                                    const stringValues: string[] = [];
+                                    const numberValues: number[] = [];
+                                    for (const valueObject of where.values) {
+                                        const value = valueObject.value;
+                                        if (typeof value === "string") {
+                                            stringValues.push(value);
+                                        }
+                                        if (typeof value === "number") {
+                                            numberValues.push(value);
+                                        }
+                                    }
+                                    if (stringValues.length > 0) {
+                                        this._wheres.push(new Where(where.column, comparison, stringValues, where.is_negate));
+                                    }
+                                    if (numberValues.length > 0) {
+                                        this._wheres.push(new Where(where.column, comparison, numberValues, where.is_negate));
+                                    }
+                                }
+                                break;
+                            }
+                        }
                     }
                 }
             }

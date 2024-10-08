@@ -29,6 +29,20 @@ export declare class WhereSet {
     constructor(source: {
         column: string;
         comparison: string;
+        is_negate: boolean;
+        values: [{
+            class_name: string;
+            value: null | boolean | string | number;
+        }];
+    }[]);
+    /**
+     * コンストラクタ。Whereインスタンスを復元するオブジェクトの配列を指定する。
+     *
+     * @param source
+     */
+    constructor(source: {
+        column: string;
+        comparison: string;
         isNegate: boolean;
         values: null | boolean | string | string[] | number | number[];
     }[]);
