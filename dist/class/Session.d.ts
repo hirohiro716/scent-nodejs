@@ -1,4 +1,5 @@
 import { Property } from "scent-typescript";
+import RecordBinder from "./database/RecordBinder";
 /**
  * セッションの抽象クラス。
  */
@@ -14,7 +15,8 @@ export default abstract class Session {
      */
     get data(): Map<string, any>;
     /**
-     * 指定されたIDに該当するセッション情報を記憶媒体から削除する。このメソッドはsaveメソッド実行時に自動的に呼び出され、古いセッション情報の削除に使用される。
+     * 指定されたIDに該当するセッション情報を記憶媒体から削除する。
+     * このメソッドはsaveメソッド実行時に自動的に呼び出され、古いセッション情報の削除に使用される。
      *
      * @param id
      */
@@ -39,7 +41,8 @@ export default abstract class Session {
      */
     abstract save(resource: any): Promise<void>;
     /**
-     * 指定されたセッションIDに該当するJSONデータを記憶媒体から取得する。このメソッドはloadメソッド実行時に自動的に呼び出される。
+     * 指定されたセッションIDに該当するJSONデータを記憶媒体から取得する。
+     * このメソッドはloadメソッド実行時に自動的に呼び出される。
      *
      * @param id
      * @returns
@@ -62,9 +65,9 @@ export default abstract class Session {
      */
     abstract load(resource: any): Promise<void>;
     /**
-     * トークンに使用するプロパティを取得する。
+     * トークンを格納するために使用するプロパティを取得する。
      */
-    abstract getTokenProperty(): Property;
+    abstract getPropertyOfToken(): Property;
     /**
      * クロスサイトリクエストフォージェリ(CSRF)対策のトークンを発行する。
      *
@@ -84,4 +87,22 @@ export default abstract class Session {
      * @returns
      */
     abstract isValidToken(resource: any): Promise<boolean>;
+    /**
+     * 編集開始時のデータベースレコードのクローンを格納するために使用するプロパティを取得する。
+     */
+    abstract getPropertyOfPreEditRecords(): Property;
+    /**
+     * 指定されたRecordBinderインスタンスの編集開始時のレコードをセッションに格納する。
+     * 格納されたレコードはRecordBinderインスタンスで更新する際のコンフリクト確認に使用される。
+     *
+     * @param recordBinder
+     */
+    setPreEditRecords(recordBinder: RecordBinder<any>): void;
+    /**
+     * 指定されたRecordBinderインスタンスにセッションに格納されている編集開始時のレコードを適用する。
+     * 復元されたレコードはRecordBinderインスタンスで更新する際のコンフリクト確認に使用される。
+     *
+     * @param recordBinder
+     */
+    applyPreEditRecords(recordBinder: RecordBinder<any>): void;
 }

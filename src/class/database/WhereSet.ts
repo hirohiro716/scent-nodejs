@@ -273,6 +273,22 @@ export class WhereSet {
     }
     
     /**
+     * 内部のWhereインスタンスの配列を一定のルールに従って並び替える。
+     * 具体的にはカラム名、比較演算子、比較値を連結した文字列の昇順で並び替える。
+     */
+    public sort(): void {
+        this._wheres = this._wheres.sort((a, b) => { 
+            const stringOfA = StringObject.join([a.column, a.comparison, ...a.values]);
+            const stringOfB = StringObject.join([b.column, b.comparison, ...b.values]);
+            if (stringOfA.toString() > stringOfB.toString()) {
+                return 1;
+            } else {
+                return -1;
+            }
+        });
+    }
+    
+    /**
      * このインスタンスのクローンを作成する。
      * 
      * @returns 

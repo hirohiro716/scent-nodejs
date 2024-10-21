@@ -3,6 +3,7 @@ import { Column, RecordMap, StringObject, Table } from "scent-typescript";
 import { WhereSet } from "./WhereSet.js";
 import RecordMapValidationError from "./RecordMapValidationError.js";
 import DatabaseError from "./DatabaseError.js";
+import RecordConflictError from "./RecordConflictError.js";
 
 /**
  * データベースのレコードとオブジェクトをバインドするための抽象クラス。
@@ -86,6 +87,22 @@ export default abstract class RecordBinder<C extends Connector<any, any>> {
     }
 
     /**
+     * 指定されたレコードの識別子を取得する。
+     * 
+     * @param record 
+     * @returns
+     */
+    public abstract getIdentifier(record: RecordMap): string;
+
+    /**
+     * 指定されたレコードの最終更新日時を取得する。更新日時の概念が無い場合はnullを返す。
+     * 
+     * @param record 
+     * @returns
+     */
+    protected abstract getLastUpdateTime(record: RecordMap): Date | null;
+
+    /**
      * バインドするレコードの並び順を定義するカラム文字列の配列を取得する。
      * @example
      * recordBinder.getOrderByColumnsForEdit() returns ["column_name1", "column_name2 ASC", "column_name3 DESC"]
@@ -93,27 +110,80 @@ export default abstract class RecordBinder<C extends Connector<any, any>> {
      * @returns
      */
     protected abstract getOrderByColumnsForEdit(): string[];
-    
-    /**
-     * バインドするレコードを排他制御を行ってから取得する。
-     * 
-     * @param orderByColumnsForEdit 
-     * @throws DatabaseError データベースの処理に失敗した場合。
-     */
-    protected abstract fetchRecordsForEdit(orderByColumnsForEdit: string[]): Promise<Record<string, any>[]>;
+
+    private _preEditRecords: RecordMap[] | null = null;
 
     /**
-     * データベースのレコードをこのインスタンスにバインドする。
+     * 編集開始時のデータベースレコードのクローン。コンフリクトの検出に使用される。
+     * 
+     * @returns 
+     */
+    public get preEditRecords(): RecordMap[] | null {
+        return this._preEditRecords;
+    }
+
+    public set preEditRecords(preEditRecords: RecordMap[]) {
+        this._preEditRecords = preEditRecords;
+    }
+
+    /**
+     * 編集するためのレコードを取得する。
+     * 
+     * @returns 
+     * @throws DatabaseError
+     */
+    private async fetchRecordsForEdit(): Promise<RecordMap[]> {
+        const records: RecordMap[] = [];
+        if (this.connector === null) {
+            throw new DatabaseError("Connector instance is missing.");
+        }
+        const orderBy = new StringObject();
+        const orderByColumnsForEdit = this.getOrderByColumnsForEdit();
+        if (orderByColumnsForEdit.length > 0) {
+            orderBy.append(" ORDER BY ");
+            for (const orderByColumn of orderByColumnsForEdit) {
+                if (orderBy.length() > 10) {
+                    orderBy.append(", ");
+                }
+                orderBy.append(orderByColumn);
+            }
+        }
+        const sql = new StringObject("SELECT * FROM ");
+        sql.append(this.getTable().physicalName);
+        if (this.whereSet === null) {
+            sql.append(orderBy);
+            sql.append(";");
+            for (const record of await this.connector.fetchRecords(sql.toString())) {
+                records.push(this.getTable().createRecord(record));
+            }
+        } else {
+            sql.append(" WHERE ");
+            sql.append(this.whereSet.buildPlaceholderClause());
+            sql.append(" ");
+            sql.append(orderBy);
+            sql.append(";");
+            for (const record of await this.connector.fetchRecords(sql.toString(), this.whereSet.buildParameters())) {
+                records.push(this.getTable().createRecord(record));
+            }
+        }
+        return records;
+    }
+
+    /**
+     * データベースのレコードを編集してこのインスタンスにバインドする。
      * 
      * @throws DatabaseError データベースの処理に失敗した場合。
      */
     public async edit(): Promise<void> {
-        const editingRecords: RecordMap[] = [];
-        for (const record of await this.fetchRecordsForEdit(this.getOrderByColumnsForEdit())) {
-            editingRecords.push(this.getTable().createRecord(record));
+        const editingRecords = await this.fetchRecordsForEdit();
+        this._preEditRecords = [];
+        for (const record of editingRecords) {
+            this._preEditRecords.push(record.clone());
         }
         this.editingRecords = editingRecords;
     }
+
+    private _isConflictIgnored: boolean = false;
 
     /**
      * 変更するレコードを特定するための検索条件が未指定の場合でも、更新を許可している場合はtrueを返す。
@@ -123,14 +193,87 @@ export default abstract class RecordBinder<C extends Connector<any, any>> {
     protected abstract isPermittedUpdateWhenEmptySearchCondition(): boolean;
 
     /**
+     * コンフリクトを無視する場合はtrue。
+     */
+    public get isConflictIgnored(): boolean {
+        return this._isConflictIgnored;
+    }
+
+    public set isConflictIgnored(isConflictIgnored: boolean) {
+        this._isConflictIgnored = isConflictIgnored;
+    }
+
+    /**
+     * コンフリクトを検出する。
+     * 
+     * @throws RecordConflictError データベースレコードがコンフリクトした場合。
+     */
+    protected async detectConflict(): Promise<void> {
+        if (this._isConflictIgnored === false) {
+            if (this._preEditRecords === null) {
+                throw new DatabaseError("No pre-edit record has been set.");
+            }
+            const mapOfIdentifierAndPreEditRecord = new Map<string, RecordMap>();
+            for (const preEditRecord of this._preEditRecords) {
+                mapOfIdentifierAndPreEditRecord.set(this.getIdentifier(preEditRecord), preEditRecord);
+            }
+            const conflictRecords: RecordMap[] = [];
+            const mapOfIdentifierAndCurrentDatabaseRecord = new Map<string, RecordMap>();
+            for (const currentDatabaseRecord of await this.fetchRecordsForEdit()) {
+                const identifier = this.getIdentifier(currentDatabaseRecord);
+                if (mapOfIdentifierAndPreEditRecord.has(identifier)) {
+                    mapOfIdentifierAndCurrentDatabaseRecord.set(identifier, currentDatabaseRecord);
+                } else {
+                    conflictRecords.push(currentDatabaseRecord);
+                }
+            }
+            const deletedRecords: RecordMap[] = [];
+            for (const preEditRecord of this._preEditRecords) {
+                const identifier = this.getIdentifier(preEditRecord);
+                const currentDatabaseRecord = mapOfIdentifierAndCurrentDatabaseRecord.get(identifier);
+                if (typeof currentDatabaseRecord !== "undefined") {
+                    const preEditRecordUpdateTime = this.getLastUpdateTime(preEditRecord);
+                    const currentDatabaseRecordUpdateTime = this.getLastUpdateTime(currentDatabaseRecord);
+                    if (preEditRecordUpdateTime !== null && currentDatabaseRecordUpdateTime !== null && preEditRecordUpdateTime.getTime() < currentDatabaseRecordUpdateTime.getTime()) {
+                        conflictRecords.push(currentDatabaseRecord);
+                    }
+                } else {
+                    deletedRecords.push(preEditRecord);
+                }
+            }
+            if (conflictRecords.length > 0) {
+                throw new RecordConflictError(conflictRecords);
+            }
+            if (deletedRecords.length > 0) {
+                const mapOfIdentifierAndRecord = new Map<string, RecordMap>();
+                for (const record of this.records) {
+                    const identifier = this.getIdentifier(record);
+                    mapOfIdentifierAndRecord.set(identifier, record);
+                }
+                for (const deletedRecord of deletedRecords) {
+                    const identifier = this.getIdentifier(deletedRecord);
+                    if (mapOfIdentifierAndRecord.has(identifier)) {
+                        throw new RecordConflictError("編集中のレコードが削除され競合が発生しました。", deletedRecords);
+                    }
+                }
+            }
+        }
+    }
+
+    /**
      * このインスタンスにバインドされているレコードでデータベースのレコードを上書きする。
      * 
      * @throws DatabaseError データベースの処理に失敗した場合。
+     * @throws RecordConflictError データベースレコードがコンフリクトした場合。
      */
     public async update(): Promise<void> {
         if (this._connector === null) {
             throw new DatabaseError("Connector instance is missing.");
         }
+        if (await this._connector.isTransactionBegun() === false) {
+            throw new DatabaseError(Connector.TRANSACTION_NOT_STARTED_MESSAGE);
+        }
+        await this.detectConflict();
         const sql = new StringObject("DELETE FROM ");
         sql.append(this.getTable().physicalName);
         if (this._whereSet === null) {
@@ -181,6 +324,8 @@ export default abstract class RecordBinder<C extends Connector<any, any>> {
 
     /**
      * バインドされているレコードが有効か検証する。
+     * 
+     * @throws RecordMapValidationError 検証に失敗した場合。
      */
     public async validate(): Promise<void> {
         for (const record of this.records) {
@@ -202,6 +347,7 @@ export default abstract class RecordBinder<C extends Connector<any, any>> {
      * 指定されたレコードとカラムに対応する値を標準化して返す。undefinedを返す場合は値に対して何もしない。
      * 
      * @returns
+     * @throws Error
      */
     public abstract valueNormalize(record: RecordMap, column: Column): Promise<any>;
 

@@ -131,6 +131,11 @@ export declare class WhereSet {
         values: null | boolean | string | string[] | number | number[];
     }[];
     /**
+     * 内部のWhereインスタンスの配列を一定のルールに従って並び替える。
+     * 具体的にはカラム名、比較演算子、比較値を連結した文字列の昇順で並び替える。
+     */
+    sort(): void;
+    /**
      * このインスタンスのクローンを作成する。
      *
      * @returns

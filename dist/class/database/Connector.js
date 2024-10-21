@@ -7,7 +7,7 @@ import DataNotFoundError from "./DataNotFoundError.js";
  * @template D デリゲートの型。
  * @template C データベースに接続するためのパラメーターの型。
  */
-export default class Connector {
+class Connector {
     /**
      * コンストラクタ。データベース接続に使用するパラメーターを指定する。
      *
@@ -282,7 +282,7 @@ export default class Connector {
             result.append(column);
         }
         if (map.size > 0) {
-            result.prepend(" CASE ");
+            result.prepend("CASE ");
             for (const key of map.keys()) {
                 result.append(" WHEN ");
                 let wrapper;
@@ -312,3 +312,8 @@ export default class Connector {
         return this.makeCaseClauseFromMap(column, new Map(Object.entries(object)));
     }
 }
+/**
+ * トランザクションが開始されていない場合のエラーメッセージ。
+ */
+Connector.TRANSACTION_NOT_STARTED_MESSAGE = "Transaction has not been started.";
+export default Connector;

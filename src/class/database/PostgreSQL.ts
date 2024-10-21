@@ -308,56 +308,11 @@ export namespace PostgreSQL {
      * データベースのレコードとオブジェクトをバインドするための抽象クラス。
      */
     export abstract class RecordBinder extends ParentRecordBinder<Connector> {
-
-        protected async fetchRecordsForEdit(orderByColumnsForEdit: string[]): Promise<Record<string, any>[]> {
-            if (this.connector === null) {
-                throw new DatabaseError("Connector instance is missing.");
-            }
-            const orderBy = new StringObject();
-            if (orderByColumnsForEdit.length > 0) {
-                orderBy.append(" ORDER BY ");
-                for (const orderByColumn of orderByColumnsForEdit) {
-                    if (orderBy.length() > 10) {
-                        orderBy.append(", ");
-                    }
-                    orderBy.append(orderByColumn);
-                }
-            }
-            const sql = new StringObject("SELECT * FROM ");
-            sql.append(this.getTable().physicalName);
-            if (this.whereSet === null) {
-                sql.append(orderBy);
-                sql.append(";");
-                this.connector.lockTableAsReadonly(this.getTable());
-                return await this.connector.fetchRecords(sql.toString());
-            }
-            sql.append(" WHERE ");
-            sql.append(this.whereSet.buildPlaceholderClause());
-            sql.append(" ");
-            sql.append(orderBy);
-            sql.append(" FOR UPDATE NOWAIT;");
-            return this.connector.fetchRecords(sql.toString(), this.whereSet.buildParameters());
-        }
     }
 
     /**
      * データベースのレコードとオブジェクトをバインドするための抽象クラス。
      */
     export abstract class SingleRecordBinder extends ParentSingleRecordBinder<Connector> {
-
-        protected async fetchRecordForEdit(): Promise<Record<string, any>> {
-            if (this.connector === null) {
-                throw new DatabaseError("Connector instance is missing.");
-            }
-            if (this.whereSet === null) {
-                throw new DatabaseError("Search condition for editing is missing.");
-            }
-            const sql = new StringObject("SELECT * FROM ");
-            sql.append(this.getTable().physicalName);
-            sql.append(" WHERE ");
-            sql.append(this.whereSet.buildPlaceholderClause());
-            sql.append(" FOR UPDATE NOWAIT;");
-            return await this.connector.fetchRecord(sql.toString(), this.whereSet.buildParameters());
-        }
     }
 }

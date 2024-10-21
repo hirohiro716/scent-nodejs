@@ -101,13 +101,11 @@ export declare namespace PostgreSQL {
      * データベースのレコードとオブジェクトをバインドするための抽象クラス。
      */
     export abstract class RecordBinder extends ParentRecordBinder<Connector> {
-        protected fetchRecordsForEdit(orderByColumnsForEdit: string[]): Promise<Record<string, any>[]>;
     }
     /**
      * データベースのレコードとオブジェクトをバインドするための抽象クラス。
      */
     export abstract class SingleRecordBinder extends ParentSingleRecordBinder<Connector> {
-        protected fetchRecordForEdit(): Promise<Record<string, any>>;
     }
     export {};
 }

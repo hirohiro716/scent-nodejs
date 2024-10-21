@@ -1,4 +1,5 @@
-import { Property, StringObject } from "scent-typescript";
+import { Property, RecordMap, StringObject } from "scent-typescript";
+import RecordBinder from "./database/RecordBinder";
 
 /**
  * セッションの抽象クラス。
@@ -27,7 +28,8 @@ export default abstract class Session {
     }
 
     /**
-     * 指定されたIDに該当するセッション情報を記憶媒体から削除する。このメソッドはsaveメソッド実行時に自動的に呼び出され、古いセッション情報の削除に使用される。
+     * 指定されたIDに該当するセッション情報を記憶媒体から削除する。
+     * このメソッドはsaveメソッド実行時に自動的に呼び出され、古いセッション情報の削除に使用される。
      * 
      * @param id 
      */
@@ -68,7 +70,8 @@ export default abstract class Session {
     public abstract save(resource: any): Promise<void>;
 
     /**
-     * 指定されたセッションIDに該当するJSONデータを記憶媒体から取得する。このメソッドはloadメソッド実行時に自動的に呼び出される。
+     * 指定されたセッションIDに該当するJSONデータを記憶媒体から取得する。
+     * このメソッドはloadメソッド実行時に自動的に呼び出される。
      * 
      * @param id 
      * @returns
@@ -103,9 +106,9 @@ export default abstract class Session {
     public abstract load(resource: any): Promise<void>;
 
     /**
-     * トークンに使用するプロパティを取得する。
+     * トークンを格納するために使用するプロパティを取得する。
      */
-    public abstract getTokenProperty(): Property;
+    public abstract getPropertyOfToken(): Property;
 
     /**
      * クロスサイトリクエストフォージェリ(CSRF)対策のトークンを発行する。
@@ -114,7 +117,7 @@ export default abstract class Session {
      */
     public issueToken(): string {
         const token = StringObject.secureRandom(64);
-        this.data.set(this.getTokenProperty().physicalName, token.toString());
+        this.data.set(this.getPropertyOfToken().physicalName, token.toString());
         return token.toString();
     }
 
@@ -126,8 +129,8 @@ export default abstract class Session {
     protected async isValidTokenString(token: string): Promise<boolean> {
         let result = false;
         if (typeof this._id !== "undefined" && typeof this._data !== "undefined" && token.length > 0) {
-            result = StringObject.from(this._data.get(this.getTokenProperty().physicalName)).equals(token);
-            this._data.delete(this.getTokenProperty().physicalName);
+            result = StringObject.from(this._data.get(this.getPropertyOfToken().physicalName)).equals(token);
+            this._data.delete(this.getPropertyOfToken().physicalName);
             await this.deleteFromStorage(this._id);
             await this.saveToStorage(this._id, JSON.stringify(Object.fromEntries(this._data)));
         }
@@ -141,4 +144,68 @@ export default abstract class Session {
      * @returns
      */
     public abstract isValidToken(resource: any): Promise<boolean>;
+
+    /**
+     * 編集開始時のデータベースレコードのクローンを格納するために使用するプロパティを取得する。
+     */
+    public abstract getPropertyOfPreEditRecords(): Property;
+
+    /**
+     * 指定されたRecordBinderインスタンスの編集開始時のレコードをセッションに格納する。
+     * 格納されたレコードはRecordBinderインスタンスで更新する際のコンフリクト確認に使用される。
+     * 
+     * @param recordBinder 
+     */
+    public setPreEditRecords(recordBinder: RecordBinder<any>): void {
+        const preEditRecords: Record<string, Record<string, Array<Record<string, any>> | null>> = {...this.data.get(this.getPropertyOfPreEditRecords().physicalName)};
+        const table = recordBinder.getTable();
+        if (Object.keys(preEditRecords).includes(table.physicalName) === false) {
+            preEditRecords[table.physicalName] = {};
+        }
+        const whereSetStringObject = new StringObject();
+        if (recordBinder.whereSet !== null) {
+            recordBinder.whereSet.sort();
+            whereSetStringObject.append(JSON.stringify(recordBinder.whereSet.toObject()));
+        }
+        preEditRecords[table.physicalName][whereSetStringObject.toString()] = null;
+        if (recordBinder.preEditRecords !== null) {
+            preEditRecords[table.physicalName][whereSetStringObject.toString()] = RecordMap.toObject(recordBinder.preEditRecords);
+        }
+        this.data.set(this.getPropertyOfPreEditRecords().physicalName, preEditRecords);
+    }
+
+    /**
+     * 指定されたRecordBinderインスタンスにセッションに格納されている編集開始時のレコードを適用する。
+     * 復元されたレコードはRecordBinderインスタンスで更新する際のコンフリクト確認に使用される。
+     * 
+     * @param recordBinder 
+     */
+    public applyPreEditRecords(recordBinder: RecordBinder<any>): void {
+        recordBinder.preEditRecords = [];
+        const preEditRecords: Record<string, Record<string, Array<Record<string, any>> | null>> = {...this.data.get(this.getPropertyOfPreEditRecords().physicalName)};
+        const table = recordBinder.getTable();
+        if (Object.keys(preEditRecords).includes(table.physicalName) === false) {
+            preEditRecords[table.physicalName] = {};
+        }
+        const whereSetStringObject = new StringObject();
+        if (recordBinder.whereSet !== null) {
+            recordBinder.whereSet.sort();
+            whereSetStringObject.append(JSON.stringify(recordBinder.whereSet.toObject()));
+        }
+        if (Object.keys(preEditRecords[table.physicalName]).includes(whereSetStringObject.toString()) === false) {
+            preEditRecords[table.physicalName][whereSetStringObject.toString()] = [];
+        }
+        const isEmpty = recordBinder.records.length === 0;
+        const preEditRecordObjects = preEditRecords[recordBinder.getTable().physicalName][whereSetStringObject.toString()];
+        if (preEditRecordObjects !== null) {
+            recordBinder.preEditRecords = [];
+            for (const preEditRecordObject of preEditRecordObjects) {
+                const record = table.createRecord(preEditRecordObject);
+                recordBinder.preEditRecords.push(record);
+                if (isEmpty) {
+                    recordBinder.records.push(record.clone());
+                }
+            }
+        }
+    }
 }

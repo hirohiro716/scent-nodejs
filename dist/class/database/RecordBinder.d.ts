@@ -50,6 +50,20 @@ export default abstract class RecordBinder<C extends Connector<any, any>> {
     get records(): RecordMap[];
     set records(records: RecordMap[]);
     /**
+     * 指定されたレコードの識別子を取得する。
+     *
+     * @param record
+     * @returns
+     */
+    abstract getIdentifier(record: RecordMap): string;
+    /**
+     * 指定されたレコードの最終更新日時を取得する。更新日時の概念が無い場合はnullを返す。
+     *
+     * @param record
+     * @returns
+     */
+    protected abstract getLastUpdateTime(record: RecordMap): Date | null;
+    /**
      * バインドするレコードの並び順を定義するカラム文字列の配列を取得する。
      * @example
      * recordBinder.getOrderByColumnsForEdit() returns ["column_name1", "column_name2 ASC", "column_name3 DESC"]
@@ -57,19 +71,28 @@ export default abstract class RecordBinder<C extends Connector<any, any>> {
      * @returns
      */
     protected abstract getOrderByColumnsForEdit(): string[];
+    private _preEditRecords;
     /**
-     * バインドするレコードを排他制御を行ってから取得する。
+     * 編集開始時のデータベースレコードのクローン。コンフリクトの検出に使用される。
      *
-     * @param orderByColumnsForEdit
-     * @throws DatabaseError データベースの処理に失敗した場合。
+     * @returns
      */
-    protected abstract fetchRecordsForEdit(orderByColumnsForEdit: string[]): Promise<Record<string, any>[]>;
+    get preEditRecords(): RecordMap[] | null;
+    set preEditRecords(preEditRecords: RecordMap[]);
     /**
-     * データベースのレコードをこのインスタンスにバインドする。
+     * 編集するためのレコードを取得する。
+     *
+     * @returns
+     * @throws DatabaseError
+     */
+    private fetchRecordsForEdit;
+    /**
+     * データベースのレコードを編集してこのインスタンスにバインドする。
      *
      * @throws DatabaseError データベースの処理に失敗した場合。
      */
     edit(): Promise<void>;
+    private _isConflictIgnored;
     /**
      * 変更するレコードを特定するための検索条件が未指定の場合でも、更新を許可している場合はtrueを返す。
      *
@@ -77,9 +100,21 @@ export default abstract class RecordBinder<C extends Connector<any, any>> {
      */
     protected abstract isPermittedUpdateWhenEmptySearchCondition(): boolean;
     /**
+     * コンフリクトを無視する場合はtrue。
+     */
+    get isConflictIgnored(): boolean;
+    set isConflictIgnored(isConflictIgnored: boolean);
+    /**
+     * コンフリクトを検出する。
+     *
+     * @throws RecordConflictError データベースレコードがコンフリクトした場合。
+     */
+    protected detectConflict(): Promise<void>;
+    /**
      * このインスタンスにバインドされているレコードでデータベースのレコードを上書きする。
      *
      * @throws DatabaseError データベースの処理に失敗した場合。
+     * @throws RecordConflictError データベースレコードがコンフリクトした場合。
      */
     update(): Promise<void>;
     /**
@@ -97,12 +132,15 @@ export default abstract class RecordBinder<C extends Connector<any, any>> {
     abstract valueValidate(record: RecordMap, column: Column): Promise<void>;
     /**
      * バインドされているレコードが有効か検証する。
+     *
+     * @throws RecordMapValidationError 検証に失敗した場合。
      */
     validate(): Promise<void>;
     /**
      * 指定されたレコードとカラムに対応する値を標準化して返す。undefinedを返す場合は値に対して何もしない。
      *
      * @returns
+     * @throws Error
      */
     abstract valueNormalize(record: RecordMap, column: Column): Promise<any>;
     /**

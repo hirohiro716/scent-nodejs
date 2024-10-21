@@ -9,6 +9,10 @@ import DatabaseError from "./DatabaseError.js";
  */
 export default abstract class Connector<D, C> {
     /**
+     * トランザクションが開始されていない場合のエラーメッセージ。
+     */
+    static readonly TRANSACTION_NOT_STARTED_MESSAGE = "Transaction has not been started.";
+    /**
      * コンストラクタ。データベース接続に使用するパラメーターを指定する。
      *
      * @param connectionParameters

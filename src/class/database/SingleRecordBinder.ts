@@ -68,20 +68,8 @@ export default abstract class SingleRecordBinder<C extends Connector<any, any>> 
         await this.connector.insert(this.record, this.getTable());
     }
 
-    /**
-     * バインドするレコードを排他制御を行ってから取得する。
-     * 
-     * @throws DatabaseError データベースの処理に失敗した場合。
-     * @returns
-     */
-    protected abstract fetchRecordForEdit(): Promise<Record<string, any>>;
-
     protected getOrderByColumnsForEdit(): string[] {
         return [];
-    }
-
-    protected async fetchRecordsForEdit(orderByColumnsForEdit: string[]): Promise<Record<string, any>[]> {
-        return [await this.fetchRecordForEdit()];
     }
 
     protected isPermittedUpdateWhenEmptySearchCondition(): boolean {
@@ -125,6 +113,7 @@ export default abstract class SingleRecordBinder<C extends Connector<any, any>> 
         if (this.whereSet === null) {
             throw new DatabaseError("Search condition for updating is missing.");
         }
+        await this.detectConflict();
         await this.connector.update(this.record, this.getTable(), this.whereSet);
     }
 
@@ -140,6 +129,7 @@ export default abstract class SingleRecordBinder<C extends Connector<any, any>> 
         if (this.whereSet === null) {
             throw new DatabaseError("Search condition for deleting is missing.");
         }
+        await this.detectConflict();
         const sql = new StringObject("DELETE FROM ");
         sql.append(this.getTable().physicalName);
         sql.append(" WHERE ");

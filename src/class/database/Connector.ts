@@ -12,6 +12,11 @@ import DataNotFoundError from "./DataNotFoundError.js";
 export default abstract class Connector<D, C> {
 
     /**
+     * トランザクションが開始されていない場合のエラーメッセージ。
+     */
+    public static readonly TRANSACTION_NOT_STARTED_MESSAGE = "Transaction has not been started.";
+
+    /**
      * コンストラクタ。データベース接続に使用するパラメーターを指定する。
      * 
      * @param connectionParameters 
@@ -428,7 +433,7 @@ export default abstract class Connector<D, C> {
             result.append(column);
         }
         if (map.size > 0) {
-            result.prepend(" CASE ");
+            result.prepend("CASE ");
             for (const key of map.keys()) {
                 result.append(" WHEN ");
                 let wrapper: string | undefined;

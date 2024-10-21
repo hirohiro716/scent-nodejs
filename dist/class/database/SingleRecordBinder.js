@@ -63,9 +63,6 @@ export default class SingleRecordBinder extends RecordBinder {
     getOrderByColumnsForEdit() {
         return [];
     }
-    async fetchRecordsForEdit(orderByColumnsForEdit) {
-        return [await this.fetchRecordForEdit()];
-    }
     isPermittedUpdateWhenEmptySearchCondition() {
         return false;
     }
@@ -98,6 +95,7 @@ export default class SingleRecordBinder extends RecordBinder {
         if (this.whereSet === null) {
             throw new DatabaseError("Search condition for updating is missing.");
         }
+        await this.detectConflict();
         await this.connector.update(this.record, this.getTable(), this.whereSet);
     }
     /**
@@ -112,6 +110,7 @@ export default class SingleRecordBinder extends RecordBinder {
         if (this.whereSet === null) {
             throw new DatabaseError("Search condition for deleting is missing.");
         }
+        await this.detectConflict();
         const sql = new StringObject("DELETE FROM ");
         sql.append(this.getTable().physicalName);
         sql.append(" WHERE ");

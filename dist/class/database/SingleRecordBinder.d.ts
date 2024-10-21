@@ -30,15 +30,7 @@ export default abstract class SingleRecordBinder<C extends Connector<any, any>> 
      * @throws DatabaseError データベースの処理に失敗した場合。
      */
     insert(): Promise<void>;
-    /**
-     * バインドするレコードを排他制御を行ってから取得する。
-     *
-     * @throws DatabaseError データベースの処理に失敗した場合。
-     * @returns
-     */
-    protected abstract fetchRecordForEdit(): Promise<Record<string, any>>;
     protected getOrderByColumnsForEdit(): string[];
-    protected fetchRecordsForEdit(orderByColumnsForEdit: string[]): Promise<Record<string, any>[]>;
     protected isPermittedUpdateWhenEmptySearchCondition(): boolean;
     /**
      * バインドされたレコードが、すでに削除されている場合trueを返す。テーブルが論理削除仕様の場合にtrueかfalseを返し、物理削除仕様の場合は常にfalseを返す。
