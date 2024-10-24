@@ -60,8 +60,8 @@ export declare namespace PostgreSQL {
         protected fetchFieldByDelegate(sql: string, parameters?: any[]): Promise<any>;
         protected fetchRecordByDelegate(sql: string, parameters?: any[]): Promise<Record<string, any>>;
         protected fetchRecordsByDelegate(sql: string, parameters?: any[]): Promise<Record<string, any>[]>;
-        existsTable(table: string | Table<any>): Promise<boolean>;
-        fetchColumns(table: string | Table<any>): Promise<string[]>;
+        existsTable(table: string | Table): Promise<boolean>;
+        fetchColumns(table: string | Table): Promise<string[]>;
         /**
          * データベースサーバーの現在の時刻を取得する。
          *
@@ -82,14 +82,14 @@ export declare namespace PostgreSQL {
          * @param table
          * @throws DatabaseError データベースの処理に失敗した場合。
          */
-        lockTableAsReadonly(table: string | Table<any>): Promise<void>;
+        lockTableAsReadonly(table: string | Table): Promise<void>;
         /**
          * テーブルの読み取りと書き込みをロックする。
          *
          * @param table
          * @throws DatabaseError データベースの処理に失敗した場合。
          */
-        lockTable(table: string | Table<any>): Promise<void>;
+        lockTable(table: string | Table): Promise<void>;
         private _isTransactionBegun;
         isTransactionBegun(): Promise<boolean>;
         begin(): Promise<void>;

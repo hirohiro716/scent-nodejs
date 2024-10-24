@@ -1,5 +1,5 @@
 import Connector from "./Connector.js";
-import { Table } from "scent-typescript";
+import { Column, Table } from "scent-typescript";
 import { WhereSet } from "./WhereSet.js";
 /**
  * データベースのレコードを検索するための抽象クラス。
@@ -16,6 +16,8 @@ export default abstract class RecordSearcher<C extends Connector<any, any>> {
     private _connector;
     /**
      * 接続に使用するデータベースインスタンス。
+     *
+     * @returns
      */
     get connector(): C;
     set connector(connector: C);
@@ -24,7 +26,20 @@ export default abstract class RecordSearcher<C extends Connector<any, any>> {
      *
      * @returns
      */
-    abstract getTable(): Table<any>;
+    abstract getTable(): Table;
+    /**
+     * 検索結果に含まれるカラムを取得する。
+     *
+     * @returns
+     */
+    abstract getResultColumns(): Column[];
+    /**
+     * 結果結果のカラムの代わりとなる関数を取得する。
+     *
+     * @param column
+     * @returns
+     */
+    abstract getFunctionInsteadOfResultColumn(column: Column): Promise<string | undefined>;
     /**
      * 検索条件を指定してデータベースからレコード検索する。
      *

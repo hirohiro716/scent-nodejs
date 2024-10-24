@@ -16,6 +16,8 @@ export default class RecordSearcher {
     }
     /**
      * 接続に使用するデータベースインスタンス。
+     *
+     * @returns
      */
     get connector() {
         if (this._connector == null) {
@@ -41,7 +43,22 @@ export default class RecordSearcher {
         }
         const sql = new StringObject(partBeforeWhere);
         if (sql.length() === 0) {
-            sql.append("SELECT * FROM ").append(this.getTable().physicalName);
+            sql.append("SELECT ");
+            for (const column of this.getResultColumns()) {
+                if (sql.length() > 7) {
+                    sql.append(", ");
+                }
+                const sqlFunction = await this.getFunctionInsteadOfResultColumn(column);
+                if (sqlFunction) {
+                    sql.append(sqlFunction);
+                    sql.append(" AS ");
+                    sql.append(column.physicalName);
+                }
+                else {
+                    sql.append(column.physicalName);
+                }
+            }
+            sql.append(" FROM ").append(this.getTable().physicalName);
         }
         const wherePart = new StringObject();
         const parameters = [];

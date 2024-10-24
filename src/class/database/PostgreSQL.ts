@@ -198,7 +198,7 @@ export namespace PostgreSQL {
             return result.rows;
         }
     
-        public async existsTable(table: string | Table<any>): Promise<boolean> {
+        public async existsTable(table: string | Table): Promise<boolean> {
             let tableName: string;
             if (table instanceof Table) {
                 tableName = table.physicalName;
@@ -209,7 +209,7 @@ export namespace PostgreSQL {
             return (numberOfTables > 0);
         }
     
-        public async fetchColumns(table: string | Table<any>): Promise<string[]> {
+        public async fetchColumns(table: string | Table): Promise<string[]> {
             let tableName: string;
             if (table instanceof Table) {
                 tableName = table.physicalName;
@@ -250,7 +250,7 @@ export namespace PostgreSQL {
          * @param table 
          * @throws DatabaseError データベースの処理に失敗した場合。
          */
-        public async lockTableAsReadonly(table: string | Table<any>): Promise<void> {
+        public async lockTableAsReadonly(table: string | Table): Promise<void> {
             const sql = new StringObject("LOCK TABLE ");
             if (table instanceof Table) {
                 sql.append(table.physicalName);
@@ -267,7 +267,7 @@ export namespace PostgreSQL {
          * @param table 
          * @throws DatabaseError データベースの処理に失敗した場合。
          */
-        public async lockTable(table: string | Table<any>): Promise<void> {
+        public async lockTable(table: string | Table): Promise<void> {
             const sql = new StringObject("LOCK TABLE ");
             if (table instanceof Table) {
                 sql.append(table.physicalName);

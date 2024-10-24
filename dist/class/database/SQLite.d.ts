@@ -58,8 +58,8 @@ export declare namespace SQLite {
         protected fetchFieldByDelegate(sql: string, parameters?: any[]): Promise<any>;
         protected fetchRecordByDelegate(sql: string, parameters?: any[]): Promise<Record<string, any>>;
         protected fetchRecordsByDelegate(sql: string, parameters?: any[]): Promise<Record<string, any>[]>;
-        existsTable(table: string | Table<any>): Promise<boolean>;
-        fetchColumns(table: string | Table<any>): Promise<string[]>;
+        existsTable(table: string | Table): Promise<boolean>;
+        fetchColumns(table: string | Table): Promise<string[]>;
         /**
          * 最後に更新したレコード数を取得する。レコードを更新したコネクションと同じ接続内で実行する必要がある。
          *

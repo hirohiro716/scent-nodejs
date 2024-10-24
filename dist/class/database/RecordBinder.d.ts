@@ -24,7 +24,7 @@ export default abstract class RecordBinder<C extends Connector<any, any>> {
      *
      * @returns
      */
-    abstract getTable(): Table<any>;
+    abstract getTable(): Table;
     /**
      * レコードのすべてのカラムを取得する。
      *
