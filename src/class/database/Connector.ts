@@ -288,7 +288,7 @@ export default abstract class Connector<D, C> {
      * @param table 対象のテーブル。
      * @throws DatabaseError データベースの処理に失敗した場合。
      */
-    public async insert(record: Record<string, any> | RecordMap, table: string | Table): Promise<void> {
+    public async insert(record: Record<string, any> | RecordMap, table: string | Table<any>): Promise<void> {
         const sql = new StringObject("INSERT INTO ");
         if (table instanceof Table) {
             sql.append(table.physicalName);
@@ -328,7 +328,7 @@ export default abstract class Connector<D, C> {
      * @returns
      * @throws DatabaseError データベースの処理に失敗した場合。
      */
-    public async update(record: Record<string, any> | RecordMap, table: string | Table, whereSet: WhereSet): Promise<number> {
+    public async update(record: Record<string, any> | RecordMap, table: string | Table<any>, whereSet: WhereSet): Promise<number> {
         const sql = new StringObject("UPDATE ");
         if (table instanceof Table) {
             sql.append(table.physicalName);
@@ -366,7 +366,7 @@ export default abstract class Connector<D, C> {
      * @returns
      * @throws DatabaseError データベースの処理に失敗した場合。
      */
-    public abstract existsTable(table: string | Table): Promise<boolean>;
+    public abstract existsTable(table: string | Table<any>): Promise<boolean>;
 
     /**
      * 指定されたテーブルのすべてのカラムを取得する。
@@ -375,7 +375,7 @@ export default abstract class Connector<D, C> {
      * @returns
      * @throws DatabaseError データベースの処理に失敗した場合。
      */
-    public abstract fetchColumns(table: string | Table): Promise<string[]>;
+    public abstract fetchColumns(table: string | Table<any>): Promise<string[]>;
 
     /**
      * トランザクションが開始されている場合はtrueを返す。

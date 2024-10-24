@@ -163,7 +163,7 @@ export default abstract class Connector<D, C> {
      * @param table 対象のテーブル。
      * @throws DatabaseError データベースの処理に失敗した場合。
      */
-    insert(record: Record<string, any> | RecordMap, table: string | Table): Promise<void>;
+    insert(record: Record<string, any> | RecordMap, table: string | Table<any>): Promise<void>;
     /**
      * データベースのレコードを更新する。
      *
@@ -173,7 +173,7 @@ export default abstract class Connector<D, C> {
      * @returns
      * @throws DatabaseError データベースの処理に失敗した場合。
      */
-    update(record: Record<string, any> | RecordMap, table: string | Table, whereSet: WhereSet): Promise<number>;
+    update(record: Record<string, any> | RecordMap, table: string | Table<any>, whereSet: WhereSet): Promise<number>;
     /**
      * 指定されたテーブルが存在する場合はtrueを返す。
      *
@@ -181,7 +181,7 @@ export default abstract class Connector<D, C> {
      * @returns
      * @throws DatabaseError データベースの処理に失敗した場合。
      */
-    abstract existsTable(table: string | Table): Promise<boolean>;
+    abstract existsTable(table: string | Table<any>): Promise<boolean>;
     /**
      * 指定されたテーブルのすべてのカラムを取得する。
      *
@@ -189,7 +189,7 @@ export default abstract class Connector<D, C> {
      * @returns
      * @throws DatabaseError データベースの処理に失敗した場合。
      */
-    abstract fetchColumns(table: string | Table): Promise<string[]>;
+    abstract fetchColumns(table: string | Table<any>): Promise<string[]>;
     /**
      * トランザクションが開始されている場合はtrueを返す。
      *

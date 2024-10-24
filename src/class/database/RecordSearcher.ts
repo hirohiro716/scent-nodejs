@@ -42,7 +42,7 @@ export default abstract class RecordSearcher<C extends Connector<any, any>> {
      * 
      * @returns
      */
-    public abstract getTable(): Table;
+    public abstract getTable(): Table<any>;
 
     /**
      * 検索結果に含まれるカラムを取得する。

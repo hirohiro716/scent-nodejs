@@ -262,7 +262,7 @@ export namespace SQLite {
             });
         }
     
-        public async existsTable(table: string | Table): Promise<boolean> {
+        public async existsTable(table: string | Table<any>): Promise<boolean> {
             let tableName: string;
             if (table instanceof Table) {
                 tableName = table.physicalName;
@@ -273,7 +273,7 @@ export namespace SQLite {
             return (numberOfTables > 0);
         }
     
-        public async fetchColumns(table: string | Table): Promise<string[]> {
+        public async fetchColumns(table: string | Table<any>): Promise<string[]> {
             let tableName: string;
             if (table instanceof Table) {
                 tableName = table.physicalName;
