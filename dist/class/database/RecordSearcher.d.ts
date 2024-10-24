@@ -1,5 +1,5 @@
 import Connector from "./Connector.js";
-import { Column, Table } from "scent-typescript";
+import { Column, SearchResult, Table } from "scent-typescript";
 import { WhereSet } from "./WhereSet.js";
 /**
  * データベースのレコードを検索するための抽象クラス。
@@ -22,7 +22,7 @@ export default abstract class RecordSearcher<C extends Connector<any, any>> {
     get connector(): C;
     set connector(connector: C);
     /**
-     * レコードが保存されているテーブルを取得する。
+     * 検索対象のテーブルを取得する。
      *
      * @returns
      */
@@ -32,14 +32,20 @@ export default abstract class RecordSearcher<C extends Connector<any, any>> {
      *
      * @returns
      */
-    abstract getResultColumns(): Column[];
+    abstract getColumns(): Column[];
     /**
      * 結果結果のカラムの代わりとなる関数を取得する。
      *
      * @param column
      * @returns
      */
-    abstract getFunctionInsteadOfResultColumn(column: Column): Promise<string | undefined>;
+    abstract getFunctionInsteadOfColumn(column: Column): Promise<string | undefined>;
+    /**
+     * データベースから取得したレコードオブジェクト配列から検索結果のインスタンスを作成する。
+     *
+     * @returns
+     */
+    abstract createSearchResult(records: Record<string, any>[]): SearchResult;
     /**
      * 検索条件を指定してデータベースからレコード検索する。
      *
@@ -49,5 +55,5 @@ export default abstract class RecordSearcher<C extends Connector<any, any>> {
      * @returns
      * @throws DatabaseError データベースの処理に失敗した場合。
      */
-    search(whereSets: WhereSet[], partBeforeWhere?: string, partAfterWhere?: string): Promise<Record<string, any>[]>;
+    search(whereSets: WhereSet[], partBeforeWhere?: string, partAfterWhere?: string): Promise<SearchResult>;
 }

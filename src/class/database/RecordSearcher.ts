@@ -1,5 +1,5 @@
 import Connector from "./Connector.js";
-import { Column, StringObject, Table } from "scent-typescript";
+import { Column, SearchResult, StringObject, Table } from "scent-typescript";
 import { WhereSet } from "./WhereSet.js";
 import DatabaseError from "./DatabaseError.js";
 
@@ -38,7 +38,7 @@ export default abstract class RecordSearcher<C extends Connector<any, any>> {
     }
 
     /**
-     * レコードが保存されているテーブルを取得する。
+     * 検索対象のテーブルを取得する。
      * 
      * @returns
      */
@@ -49,7 +49,7 @@ export default abstract class RecordSearcher<C extends Connector<any, any>> {
      * 
      * @returns
      */
-    public abstract getResultColumns(): Column[];
+    public abstract getColumns(): Column[];
 
     /**
      * 結果結果のカラムの代わりとなる関数を取得する。
@@ -57,7 +57,14 @@ export default abstract class RecordSearcher<C extends Connector<any, any>> {
      * @param column 
      * @returns
      */
-    public abstract getFunctionInsteadOfResultColumn(column: Column): Promise<string | undefined>;
+    public abstract getFunctionInsteadOfColumn(column: Column): Promise<string | undefined>;
+
+    /**
+     * データベースから取得したレコードオブジェクト配列から検索結果のインスタンスを作成する。
+     * 
+     * @returns
+     */
+    public abstract createSearchResult(records: Record<string, any>[]): SearchResult;
 
     /**
      * 検索条件を指定してデータベースからレコード検索する。
@@ -68,24 +75,24 @@ export default abstract class RecordSearcher<C extends Connector<any, any>> {
      * @returns
      * @throws DatabaseError データベースの処理に失敗した場合。
      */
-    public async search(whereSets: WhereSet[], partBeforeWhere?: string, partAfterWhere?: string): Promise<Record<string, any>[]> {
+    public async search(whereSets: WhereSet[], partBeforeWhere?: string, partAfterWhere?: string): Promise<SearchResult> {
         if (this._connector === null) {
             throw new DatabaseError("Connector instance is missing.");
         }
         const sql = new StringObject(partBeforeWhere);
         if (sql.length() === 0) {
             sql.append("SELECT ");
-            for (const column of this.getResultColumns()) {
+            for (const column of this.getColumns()) {
                 if (sql.length() > 7) {
                     sql.append(", ");
                 }
-                const sqlFunction = await this.getFunctionInsteadOfResultColumn(column);
+                const sqlFunction = await this.getFunctionInsteadOfColumn(column);
                 if (sqlFunction) {
                     sql.append(sqlFunction);
                     sql.append(" AS ");
                     sql.append(column.physicalName);
                 } else {
-                    sql.append(column.physicalName);
+                    sql.append(column.fullPhysicalName);
                 }
             }
             sql.append(" FROM ").append(this.getTable().physicalName);
@@ -111,6 +118,6 @@ export default abstract class RecordSearcher<C extends Connector<any, any>> {
             sql.append(partAfterWhere);
         }
         sql.append(";");
-        return await this._connector.fetchRecords(sql.toString(), parameters);
+        return this.createSearchResult(await this._connector.fetchRecords(sql.toString(), parameters));
     }
 }

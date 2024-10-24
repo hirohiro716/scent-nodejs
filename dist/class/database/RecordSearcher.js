@@ -44,18 +44,18 @@ export default class RecordSearcher {
         const sql = new StringObject(partBeforeWhere);
         if (sql.length() === 0) {
             sql.append("SELECT ");
-            for (const column of this.getResultColumns()) {
+            for (const column of this.getColumns()) {
                 if (sql.length() > 7) {
                     sql.append(", ");
                 }
-                const sqlFunction = await this.getFunctionInsteadOfResultColumn(column);
+                const sqlFunction = await this.getFunctionInsteadOfColumn(column);
                 if (sqlFunction) {
                     sql.append(sqlFunction);
                     sql.append(" AS ");
                     sql.append(column.physicalName);
                 }
                 else {
-                    sql.append(column.physicalName);
+                    sql.append(column.fullPhysicalName);
                 }
             }
             sql.append(" FROM ").append(this.getTable().physicalName);
@@ -82,6 +82,6 @@ export default class RecordSearcher {
             sql.append(partAfterWhere);
         }
         sql.append(";");
-        return await this._connector.fetchRecords(sql.toString(), parameters);
+        return this.createSearchResult(await this._connector.fetchRecords(sql.toString(), parameters));
     }
 }
