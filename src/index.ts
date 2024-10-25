@@ -14,8 +14,6 @@ import QRCode from "./class/graphic/QRCode.js";
 import { Encrypter, EncryptedData } from "./class/Encrypter.js";
 import Hasher from "./class/Hasher.js";
 
-import { Comparison, Comparisons } from "./class/database/Comparison.js";
-import { WhereSet, Where } from "./class/database/WhereSet.js";
 import Pool from "./class/database/Pool.js";
 import Connector from "./class/database/Connector.js";
 import RecordBinder from "./class/database/RecordBinder.js";
@@ -38,7 +36,6 @@ export {
     Session,
     QRCode,
     Encrypter, Hasher,
-    Comparison, Comparisons, WhereSet, Where,
     Pool, Connector, RecordBinder, SingleRecordBinder, RecordSearcher, DatabaseError, DataNotFoundError, RecordMapValidationError,
     PostgreSQL,
     SQLite, IsolationLevel,

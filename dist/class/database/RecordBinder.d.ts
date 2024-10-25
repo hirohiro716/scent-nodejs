@@ -1,6 +1,5 @@
 import Connector from "./Connector.js";
-import { Column, RecordMap, Table } from "scent-typescript";
-import { WhereSet } from "./WhereSet.js";
+import { Column, RecordMap, Table, WhereSet } from "scent-typescript";
 /**
  * データベースのレコードとオブジェクトをバインドするための抽象クラス。
  *

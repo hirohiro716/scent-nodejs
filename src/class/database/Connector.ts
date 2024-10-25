@@ -1,5 +1,4 @@
-import { Column, Datetime, RecordMap, StringObject, Table } from "scent-typescript";
-import { WhereSet } from "./WhereSet.js";
+import { Column, Datetime, RecordMap, StringObject, Table, WhereSet } from "scent-typescript";
 import DatabaseError from "./DatabaseError.js";
 import DataNotFoundError from "./DataNotFoundError.js";
 

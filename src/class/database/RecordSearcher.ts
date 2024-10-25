@@ -1,6 +1,5 @@
 import Connector from "./Connector.js";
-import { Column, SearchResult, StringObject, Table } from "scent-typescript";
-import { WhereSet } from "./WhereSet.js";
+import { Column, SearchResult, StringObject, Table, WhereSet } from "scent-typescript";
 import DatabaseError from "./DatabaseError.js";
 
 /**

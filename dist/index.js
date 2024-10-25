@@ -8,8 +8,6 @@ import Session from "./class/Session.js";
 import QRCode from "./class/graphic/QRCode.js";
 import { Encrypter } from "./class/Encrypter.js";
 import Hasher from "./class/Hasher.js";
-import { Comparison, Comparisons } from "./class/database/Comparison.js";
-import { WhereSet, Where } from "./class/database/WhereSet.js";
 import Pool from "./class/database/Pool.js";
 import Connector from "./class/database/Connector.js";
 import RecordBinder from "./class/database/RecordBinder.js";
@@ -21,4 +19,4 @@ import RecordMapValidationError from "./class/database/RecordMapValidationError.
 import { PostgreSQL } from "./class/database/PostgreSQL.js";
 import { SQLite, IsolationLevel } from "./class/database/SQLite.js";
 import Prisma from "./class/database/Prisma.js";
-export { FilesystemItem, File, ImageFile, Directory, CSV, FormParser, FormParseResult, Session, QRCode, Encrypter, Hasher, Comparison, Comparisons, WhereSet, Where, Pool, Connector, RecordBinder, SingleRecordBinder, RecordSearcher, DatabaseError, DataNotFoundError, RecordMapValidationError, PostgreSQL, SQLite, IsolationLevel, Prisma, };
+export { FilesystemItem, File, ImageFile, Directory, CSV, FormParser, FormParseResult, Session, QRCode, Encrypter, Hasher, Pool, Connector, RecordBinder, SingleRecordBinder, RecordSearcher, DatabaseError, DataNotFoundError, RecordMapValidationError, PostgreSQL, SQLite, IsolationLevel, Prisma, };
