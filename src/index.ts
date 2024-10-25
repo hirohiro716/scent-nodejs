@@ -40,4 +40,4 @@ export {
     PostgreSQL,
     SQLite, IsolationLevel,
     Prisma,
-};
+}
