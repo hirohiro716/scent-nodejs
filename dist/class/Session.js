@@ -96,7 +96,7 @@ export default class Session {
         }
         preEditRecords[table.physicalName][whereSetStringObject.toString()] = null;
         if (recordBinder.preEditRecords !== null) {
-            preEditRecords[table.physicalName][whereSetStringObject.toString()] = RecordMap.toObject(recordBinder.preEditRecords);
+            preEditRecords[table.physicalName][whereSetStringObject.toString()] = RecordMap.toObjects(recordBinder.preEditRecords);
         }
         this.data.set(this.getPropertyOfPreEditRecords().physicalName, preEditRecords);
     }
