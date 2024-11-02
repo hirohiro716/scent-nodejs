@@ -1,4 +1,3 @@
-import { Readable } from "stream";
 import { ByteArray } from "scent-typescript";
 type Type = "png" | "svg";
 /**
@@ -13,18 +12,18 @@ export default class QRCode {
     constructor(contentOrImageData: string | Buffer | ByteArray);
     private readonly contentOrImageData;
     /**
-     * QRコードをデコードして内容を取得する。
+     * QRコードを内容の文字列に変換する。
      *
      * @returns
      * @throws Error QRコードの解析に失敗した場合。
      */
-    decode(): Promise<string>;
+    toString(): Promise<string>;
     /**
-     * QRコードの画像を読み込むストリームを作成する。
+     * QRコードの画像データをバイト配列に変換する。
      *
      * @param type ファイル形式。デフォルトは"svg"。
      * @returns
      */
-    createReadStream(type?: Type): Promise<Readable>;
+    toByteArray(type?: Type): Promise<ByteArray>;
 }
 export {};

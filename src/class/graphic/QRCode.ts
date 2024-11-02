@@ -1,4 +1,3 @@
-import { Readable } from "stream";
 import * as nodeQrcode from "qrcode";
 import { ByteArray } from "scent-typescript";
 import jsQR from "jsqr";
@@ -23,12 +22,12 @@ export default class QRCode {
     private readonly contentOrImageData: string | Buffer | ByteArray;
 
     /**
-     * QRコードをデコードして内容を取得する。
+     * QRコードを内容の文字列に変換する。
      * 
      * @returns 
      * @throws Error QRコードの解析に失敗した場合。
      */
-    public async decode(): Promise<string> {
+    public async toString(): Promise<string> {
         if (typeof this.contentOrImageData === "string") {
             return this.contentOrImageData;
         } else {
@@ -36,7 +35,7 @@ export default class QRCode {
             if (this.contentOrImageData instanceof Buffer) {
                 buffer = this.contentOrImageData;
             } else {
-                buffer = await this.contentOrImageData.toBuffer();
+                buffer = this.contentOrImageData.toBuffer();
             }
             const {data, info} = await sharp(buffer).ensureAlpha().raw().toBuffer({resolveWithObject: true});
             const qrcode = jsQR(new Uint8ClampedArray(data.buffer), info.width, info.height);
@@ -49,13 +48,13 @@ export default class QRCode {
     }
 
     /**
-     * QRコードの画像を読み込むストリームを作成する。
+     * QRコードの画像データをバイト配列に変換する。
      * 
      * @param type ファイル形式。デフォルトは"svg"。
      * @returns 
      */
-    public async createReadStream(type: Type = "svg"): Promise<Readable> {
-        return new Promise<Readable>((resolve, reject) => {
+    public async toByteArray(type: Type = "svg"): Promise<ByteArray> {
+        return new Promise<ByteArray>((resolve, reject) => {
             if (typeof this.contentOrImageData === "string") {
                 switch (type) {
                     case "svg":
@@ -63,11 +62,7 @@ export default class QRCode {
                             if (error) {
                                 reject(error);
                             } else {
-                                const buffer = Buffer.from(result);
-                                const readable = new Readable();
-                                readable.push(buffer);
-                                readable.push(null);
-                                resolve(readable);
+                                resolve(ByteArray.from(Buffer.from(result)));
                             }
                         });
                         break;
@@ -76,24 +71,16 @@ export default class QRCode {
                             if (error) {
                                 reject(error);
                             } else {
-                                const readable = new Readable();
-                                readable.push(buffer);
-                                readable.push(null);
-                                resolve(readable);
+                                resolve(ByteArray.from(buffer));
                             }
                         });
                         break;
                 }
             } else {
-                const readable = new Readable();
                 if (this.contentOrImageData instanceof Buffer) {
-                    readable.push(this.contentOrImageData);
-                    readable.push(null);
-                    resolve(readable);
+                    resolve(ByteArray.from(this.contentOrImageData));
                 } else if (this.contentOrImageData instanceof ByteArray) {
-                    readable.push(this.contentOrImageData.toBuffer());
-                    readable.push(null);
-                    resolve(readable);
+                    resolve(this.contentOrImageData); 
                 }
             }
         });
