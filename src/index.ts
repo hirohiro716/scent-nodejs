@@ -9,6 +9,7 @@ import { FormParser, FormParseResult } from "./class/io/FormParser.js";
 
 import Session from "./class/Session.js";
 
+import PDF from "./class/graphic/PDF.js";
 import QRCode from "./class/graphic/QRCode.js";
 
 import { Encrypter, EncryptedData } from "./class/Encrypter.js";
@@ -34,7 +35,7 @@ export {
     FilesystemItem, File, ImageFile, Directory,
     CSV, FormParser, FormParseResult,
     Session,
-    QRCode,
+    PDF, QRCode,
     Encrypter, Hasher,
     Pool, Connector, RecordBinder, SingleRecordBinder, RecordSearcher, DatabaseError, DataNotFoundError, RecordMapValidationError,
     PostgreSQL,
