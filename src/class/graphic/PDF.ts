@@ -170,21 +170,21 @@ export default class PDF {
         let filledX: number = x;
         switch (this.textHorizontalPosition) {
         case "left":
-            this.pdfkit.text(oneLine, MillimeterValue.from(filledX).toPoint(), MillimeterValue.from(y).toPoint());
+            this.pdfkit.text(oneLine, MillimeterValue.from(filledX).toPoint(), MillimeterValue.from(y).toPoint(), {width: Number.MAX_VALUE});
             break;
         case "center":
             if (maximumWidth) {
                 filledX += maximumWidth / 2;
             }
             filledX -= metrics.width / 2;
-            this.pdfkit.text(oneLine, MillimeterValue.from(filledX).toPoint(), MillimeterValue.from(y).toPoint());
+            this.pdfkit.text(oneLine, MillimeterValue.from(filledX).toPoint(), MillimeterValue.from(y).toPoint(), {width: Number.MAX_VALUE});
             break;
         case "right":
             if (maximumWidth) {
                 filledX += maximumWidth;
             }
             filledX -= metrics.width;
-            this.pdfkit.text(oneLine, MillimeterValue.from(filledX).toPoint(), MillimeterValue.from(y).toPoint());
+            this.pdfkit.text(oneLine, MillimeterValue.from(filledX).toPoint(), MillimeterValue.from(y).toPoint(), {width: Number.MAX_VALUE});
             break;
         }
         let leading = this.leading;
