@@ -6,20 +6,14 @@ import { Writable } from "stream";
  */
 export default class PDF {
     /**
-     * コンストラクタ。日本語フォントへのパスと用紙サイズを指定する。
+     * コンストラクタ。日本語フォントへのパス、用紙サイズ、余白を指定する。
      *
      * @param pathToFont
      * @param paperSize
+     * @param marginTop
+     * @param marginLeft
      */
-    constructor(pathToFont, paperSize) {
-        /**
-         * PDFドキュメントの上余白。
-         */
-        this.marginTop = 0;
-        /**
-         * PDFドキュメントの左余白。
-         */
-        this.marginLeft = 0;
+    constructor(pathToFont, paperSize, marginTop, marginLeft) {
         /**
          * 描画色。
          */
@@ -58,6 +52,7 @@ export default class PDF {
         this.lineDash = undefined;
         this.pathToFont = pathToFont;
         this.pdfkit = new PDFKit({ font: pathToFont, size: paperSize });
+        this.pdfkit.translate(MillimeterValue.from(marginLeft).toPoint(), MillimeterValue.from(marginTop).toPoint());
     }
     /**
      * 指定文字列を描画するレイアウトを作成する。

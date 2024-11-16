@@ -7,21 +7,15 @@ type HorizontalPosition = "left" | "center" | "right";
  */
 export default class PDF {
     /**
-     * コンストラクタ。日本語フォントへのパスと用紙サイズを指定する。
+     * コンストラクタ。日本語フォントへのパス、用紙サイズ、余白を指定する。
      *
      * @param pathToFont
      * @param paperSize
+     * @param marginTop
+     * @param marginLeft
      */
-    constructor(pathToFont: string, paperSize: PaperSize);
+    constructor(pathToFont: string, paperSize: PaperSize, marginTop: number, marginLeft: number);
     private readonly pdfkit;
-    /**
-     * PDFドキュメントの上余白。
-     */
-    marginTop: number;
-    /**
-     * PDFドキュメントの左余白。
-     */
-    marginLeft: number;
     /**
      * 描画色。
      */

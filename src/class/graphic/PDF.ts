@@ -21,27 +21,20 @@ type Layout = {
 export default class PDF {
 
     /**
-     * コンストラクタ。日本語フォントへのパスと用紙サイズを指定する。
+     * コンストラクタ。日本語フォントへのパス、用紙サイズ、余白を指定する。
      * 
      * @param pathToFont 
      * @param paperSize
+     * @param marginTop
+     * @param marginLeft
      */
-    public constructor(pathToFont: string, paperSize: PaperSize) {
+    public constructor(pathToFont: string, paperSize: PaperSize, marginTop: number, marginLeft: number) {
         this.pathToFont = pathToFont;
         this.pdfkit = new PDFKit({font: pathToFont, size: paperSize});
+        this.pdfkit.translate(MillimeterValue.from(marginLeft).toPoint(), MillimeterValue.from(marginTop).toPoint());
     }
 
     private readonly pdfkit: PDFKit.PDFDocument;
-
-    /**
-     * PDFドキュメントの上余白。
-     */
-    public marginTop: number = 0;
-
-    /**
-     * PDFドキュメントの左余白。
-     */
-    public marginLeft: number = 0;
 
     /**
      * 描画色。
