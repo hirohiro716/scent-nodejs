@@ -113,7 +113,6 @@ export default class PDF {
             this.pdfkit.font(this.pathToFont, fontSize);
         }
         this.lastAdjustedFontSize = layout.fontSize;
-        console.log(this.lastAdjustedFontSize); // TODO:
         return layout;
     }
     /**
@@ -184,8 +183,6 @@ export default class PDF {
      */
     printText(text, x, y, maximumWidth, maximumHeight) {
         this.pdfkit.fillColor(this.color);
-        let width = 0;
-        let height = 0;
         const layout = this.createLayout(text, maximumWidth, maximumHeight);
         if (typeof this.lastAdjustedFontSize !== "undefined") {
             this.pdfkit.font(this.pathToFont, this.lastAdjustedFontSize);
@@ -193,41 +190,73 @@ export default class PDF {
         else {
             this.pdfkit.font(this.pathToFont, this.fontSize);
         }
-        if (typeof layout !== "undefined") {
-            let filledY = y;
-            let filledX = x;
-            switch (this.textVerticalPosition) {
-                case "top":
-                    for (const line of layout.lines) {
-                        const dimension = this.printOneLine(line, filledX, filledY);
-                        filledY += dimension.height;
-                    }
-                    break;
-                case "middle":
-                    if (maximumHeight) {
-                        filledY += maximumHeight / 2;
-                    }
-                    filledY -= layout.height / 2;
-                    for (const line of layout.lines) {
-                        const dimension = this.printOneLine(line, filledX, filledY);
-                        filledY += dimension.height;
-                    }
-                    break;
-                case "bottom":
-                    if (maximumHeight) {
-                        filledY += maximumHeight;
-                    }
-                    filledY -= layout.height;
-                    for (const line of layout.lines) {
-                        const dimension = this.printOneLine(line, filledX, filledY);
-                        filledY += dimension.height;
-                    }
-                    break;
-            }
-            width = layout.width;
-            height = layout.height;
+        let printingY = y;
+        switch (this.textVerticalPosition) {
+            case "top":
+                for (const line of layout.lines) {
+                    const dimension = this.printOneLine(line, x, printingY);
+                    printingY += dimension.height;
+                }
+                break;
+            case "middle":
+                printingY -= layout.height / 2;
+                for (const line of layout.lines) {
+                    const dimension = this.printOneLine(line, x, printingY);
+                    printingY += dimension.height;
+                }
+                break;
+            case "bottom":
+                printingY -= layout.height;
+                for (const line of layout.lines) {
+                    const dimension = this.printOneLine(line, x, printingY);
+                    printingY += dimension.height;
+                }
+                break;
         }
-        return { width: width, height: height };
+        return { width: layout.width, height: layout.height };
+    }
+    /**
+     * 指定されたBoundsの中にテキストを描画する。この処理で自動調整されたフォントサイズはインスタンス内で保持される。
+     *
+     * @param text
+     * @param bounds
+     * @returns 描画したテキストのサイズ。
+     */
+    printTextInBox(text, bounds) {
+        this.pdfkit.fillColor(this.color);
+        const layout = this.createLayout(text, bounds.width, bounds.height);
+        if (typeof this.lastAdjustedFontSize !== "undefined") {
+            this.pdfkit.font(this.pathToFont, this.lastAdjustedFontSize);
+        }
+        else {
+            this.pdfkit.font(this.pathToFont, this.fontSize);
+        }
+        let printingY = bounds.y;
+        switch (this.textVerticalPosition) {
+            case "top":
+                for (const line of layout.lines) {
+                    const dimension = this.printOneLine(line, bounds.x, printingY, bounds.width);
+                    printingY += dimension.height;
+                }
+                break;
+            case "middle":
+                printingY += bounds.height / 2;
+                printingY -= layout.height / 2;
+                for (const line of layout.lines) {
+                    const dimension = this.printOneLine(line, bounds.x, printingY, bounds.width);
+                    printingY += dimension.height;
+                }
+                break;
+            case "bottom":
+                printingY += bounds.height;
+                printingY -= layout.height;
+                for (const line of layout.lines) {
+                    const dimension = this.printOneLine(line, bounds.x, printingY, bounds.width);
+                    printingY += dimension.height;
+                }
+                break;
+        }
+        return { width: layout.width, height: layout.height };
     }
     /**
      * 指定位置に線を描画する。

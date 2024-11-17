@@ -1,4 +1,4 @@
-import { Dimension, ByteArray } from "scent-typescript";
+import { Dimension, ByteArray, Bounds } from "scent-typescript";
 type PaperSize = "A3" | "A4" | "A5" | "A6" | "B4" | "B5" | "B6";
 type VerticalPosition = "top" | "middle" | "bottom";
 type HorizontalPosition = "left" | "center" | "right";
@@ -87,6 +87,14 @@ export default class PDF {
      * @returns 描画したテキストのサイズ。
      */
     printText(text: string, x: number, y: number, maximumWidth?: number, maximumHeight?: number): Dimension;
+    /**
+     * 指定されたBoundsの中にテキストを描画する。この処理で自動調整されたフォントサイズはインスタンス内で保持される。
+     *
+     * @param text
+     * @param bounds
+     * @returns 描画したテキストのサイズ。
+     */
+    printTextInBox(text: string, bounds: Bounds): Dimension;
     /**
      * 線の太さ。
      */
