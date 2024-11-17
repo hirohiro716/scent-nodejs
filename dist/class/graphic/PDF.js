@@ -71,7 +71,7 @@ export default class PDF {
             let line = new StringObject();
             for (let index = 0; index < text.length; index++) {
                 const one = new StringObject(text).extract(index, index + 1);
-                const width = MillimeterValue.fromPoint(this.pdfkit.widthOfString(line.clone().append(one).toString())).value;
+                const width = MillimeterValue.fromPoint(this.pdfkit.widthOfString(line.clone().append(one).toString(), { lineBreak: false, width: Number.MAX_VALUE, height: Number.MAX_VALUE })).value;
                 if (this.allowAutomaticLineFeed && typeof maximumWidth !== "undefined" && maximumWidth < width || one.equals("\n")) {
                     if (line.length() > 0) {
                         lines.push(line.toString());
@@ -86,14 +86,14 @@ export default class PDF {
             let width = 0;
             let height = 0;
             for (const line of lines) {
-                const lineWidth = MillimeterValue.fromPoint(this.pdfkit.widthOfString(line)).value;
+                const lineWidth = MillimeterValue.fromPoint(this.pdfkit.widthOfString(line, { lineBreak: false, width: Number.MAX_VALUE, height: Number.MAX_VALUE })).value;
                 if (width < lineWidth) {
                     width = lineWidth;
                 }
                 if (height > 0 && this.leading) {
                     height += this.leading;
                 }
-                height += MillimeterValue.fromPoint(this.pdfkit.heightOfString(line)).value;
+                height += MillimeterValue.fromPoint(this.pdfkit.heightOfString(line, { lineBreak: false, width: Number.MAX_VALUE, height: Number.MAX_VALUE })).value;
             }
             let laidout = true;
             if (fontSize > 1) {
@@ -113,6 +113,7 @@ export default class PDF {
             this.pdfkit.font(this.pathToFont, fontSize);
         }
         this.lastAdjustedFontSize = layout.fontSize;
+        console.log(this.lastAdjustedFontSize); // TODO:
         return layout;
     }
     /**
@@ -143,33 +144,33 @@ export default class PDF {
      * @returns 描画したテキストのサイズ。
      */
     printOneLine(oneLine, x, y, maximumWidth) {
-        const metrics = this.measureTextSize(oneLine, maximumWidth);
+        const lineWidth = MillimeterValue.fromPoint(this.pdfkit.widthOfString(oneLine, { lineBreak: false, width: Number.MAX_VALUE, height: Number.MAX_VALUE })).value;
+        const lineHeight = MillimeterValue.fromPoint(this.pdfkit.heightOfString(oneLine, { lineBreak: false, width: Number.MAX_VALUE, height: Number.MAX_VALUE })).value;
         let filledX = x;
         switch (this.textHorizontalPosition) {
             case "left":
-                this.pdfkit.text(oneLine, MillimeterValue.from(filledX).toPoint(), MillimeterValue.from(y).toPoint(), { width: Number.MAX_VALUE });
+                this.pdfkit.text(oneLine, MillimeterValue.from(filledX).toPoint(), MillimeterValue.from(y).toPoint(), { lineBreak: false, width: Number.MAX_VALUE, height: Number.MAX_VALUE });
                 break;
             case "center":
                 if (maximumWidth) {
                     filledX += maximumWidth / 2;
                 }
-                filledX -= metrics.width / 2;
-                this.pdfkit.text(oneLine, MillimeterValue.from(filledX).toPoint(), MillimeterValue.from(y).toPoint(), { width: Number.MAX_VALUE });
+                filledX -= lineWidth / 2;
+                this.pdfkit.text(oneLine, MillimeterValue.from(filledX).toPoint(), MillimeterValue.from(y).toPoint(), { lineBreak: false, width: Number.MAX_VALUE, height: Number.MAX_VALUE });
                 break;
             case "right":
                 if (maximumWidth) {
                     filledX += maximumWidth;
                 }
-                filledX -= metrics.width;
-                this.pdfkit.text(oneLine, MillimeterValue.from(filledX).toPoint(), MillimeterValue.from(y).toPoint(), { width: Number.MAX_VALUE });
+                filledX -= lineWidth;
+                this.pdfkit.text(oneLine, MillimeterValue.from(filledX).toPoint(), MillimeterValue.from(y).toPoint(), { lineBreak: false, width: Number.MAX_VALUE, height: Number.MAX_VALUE });
                 break;
         }
         let leading = this.leading;
         if (typeof leading === "undefined") {
             leading = 0;
         }
-        const height = metrics.height;
-        return { width: metrics.width, height: height + leading };
+        return { width: lineWidth, height: lineHeight + leading };
     }
     /**
      * 指定された位置にテキストを描画する。この処理で自動調整されたフォントサイズはインスタンス内で保持される。
@@ -186,6 +187,12 @@ export default class PDF {
         let width = 0;
         let height = 0;
         const layout = this.createLayout(text, maximumWidth, maximumHeight);
+        if (typeof this.lastAdjustedFontSize !== "undefined") {
+            this.pdfkit.font(this.pathToFont, this.lastAdjustedFontSize);
+        }
+        else {
+            this.pdfkit.font(this.pathToFont, this.fontSize);
+        }
         if (typeof layout !== "undefined") {
             let filledY = y;
             let filledX = x;
