@@ -30,24 +30,24 @@ export default class PDF {
     set fontPath(fontPath: string);
     private _fontSize;
     /**
-     * フォントサイズ。
+     * フォントサイズ。12が初期値。
      */
     get fontSize(): number;
     set fontSize(fontSize: number);
     /**
-     * 行と行の間隔。
+     * 行と行の間隔。0が初期値。
      */
     leading: number;
     /**
-     * 自動改行機能。
+     * 文字列の自動改行が許可されている場合はtrue。trueが初期値。
      */
     allowAutomaticLineFeed: boolean;
     /**
-     * テキストの水平方向の配置。
+     * テキストの水平方向の配置。"left"が初期値。
      */
     textHorizontalPosition: HorizontalPosition;
     /**
-     * テキストの垂直方向の配置。
+     * テキストの垂直方向の配置。"top"が初期値。
      */
     textVerticalPosition: VerticalPosition;
     /**

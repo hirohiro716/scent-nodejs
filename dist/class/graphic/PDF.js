@@ -17,19 +17,19 @@ export default class PDF {
         this._color = "#000";
         this._fontSize = 12;
         /**
-         * 行と行の間隔。
+         * 行と行の間隔。0が初期値。
          */
         this.leading = 0;
         /**
-         * 自動改行機能。
+         * 文字列の自動改行が許可されている場合はtrue。trueが初期値。
          */
         this.allowAutomaticLineFeed = true;
         /**
-         * テキストの水平方向の配置。
+         * テキストの水平方向の配置。"left"が初期値。
          */
         this.textHorizontalPosition = "left";
         /**
-         * テキストの垂直方向の配置。
+         * テキストの垂直方向の配置。"top"が初期値。
          */
         this.textVerticalPosition = "top";
         /**
@@ -67,7 +67,7 @@ export default class PDF {
         this.pdfkit.font(this._fontPath, this._fontSize);
     }
     /**
-     * フォントサイズ。
+     * フォントサイズ。12が初期値。
      */
     get fontSize() {
         return this._fontSize;

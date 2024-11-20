@@ -65,7 +65,7 @@ export default class PDF {
     private _fontSize: number = 12;
 
     /**
-     * フォントサイズ。
+     * フォントサイズ。12が初期値。
      */
     public get fontSize(): number {
         return this._fontSize;
@@ -77,22 +77,22 @@ export default class PDF {
     }
 
     /**
-     * 行と行の間隔。
+     * 行と行の間隔。0が初期値。
      */
     public leading: number = 0;
 
     /**
-     * 自動改行機能。
+     * 文字列の自動改行が許可されている場合はtrue。trueが初期値。
      */
     public allowAutomaticLineFeed: boolean = true;
 
     /**
-     * テキストの水平方向の配置。
+     * テキストの水平方向の配置。"left"が初期値。
      */
     public textHorizontalPosition: HorizontalPosition = "left";
 
     /**
-     * テキストの垂直方向の配置。
+     * テキストの垂直方向の配置。"top"が初期値。
      */
     public textVerticalPosition: VerticalPosition = "top";
 
