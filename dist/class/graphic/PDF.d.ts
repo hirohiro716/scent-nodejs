@@ -9,25 +9,31 @@ export default class PDF {
     /**
      * コンストラクタ。日本語フォントへのパス、用紙サイズ、余白を指定する。
      *
-     * @param pathToFont
+     * @param fontPath
      * @param paperSize
      * @param marginTop
      * @param marginLeft
      */
-    constructor(pathToFont: string, paperSize: PaperSize, marginTop: number, marginLeft: number);
-    private readonly pdfkit;
+    constructor(fontPath: string, paperSize: PaperSize, marginTop: number, marginLeft: number);
+    readonly pdfkit: PDFKit.PDFDocument;
+    private _color;
     /**
      * 描画色。
      */
-    color: string;
+    get color(): string;
+    set color(color: string);
+    private _fontPath;
     /**
      * フォントへのパス。
      */
-    pathToFont: string;
+    get fontPath(): string;
+    set fontPath(fontPath: string);
+    private _fontSize;
     /**
      * フォントサイズ。
      */
-    fontSize: number;
+    get fontSize(): number;
+    set fontSize(fontSize: number);
     /**
      * 行と行の間隔。
      */
@@ -49,15 +55,6 @@ export default class PDF {
      */
     lastAdjustedFontSize: number | undefined;
     /**
-     * 指定文字列を描画するレイアウトを作成する。
-     *
-     * @param text
-     * @param maximumWidth 最大幅。
-     * @param maximumHeight 最大高さ。
-     * @returns
-     */
-    private createLayout;
-    /**
      * 指定文字列のサイズを計測する。この処理で自動調整されたフォントサイズはインスタンス内で保持される。
      *
      * @param text
@@ -66,16 +63,6 @@ export default class PDF {
      * @returns
      */
     measureTextSize(text: string, maximumWidth?: number, maximumHeight?: number): Dimension;
-    /**
-     * 指定された一行のテキストを描画して塗りつぶす。
-     *
-     * @param oneLine
-     * @param x
-     * @param y
-     * @param maximumWidth
-     * @returns 描画したテキストのサイズ。
-     */
-    private printOneLine;
     /**
      * 指定された位置にテキストを描画する。この処理で自動調整されたフォントサイズはインスタンス内で保持される。
      *
@@ -95,17 +82,24 @@ export default class PDF {
      * @returns 描画したテキストのサイズ。
      */
     printTextInBox(text: string, bounds: Bounds): Dimension;
+    private _lineWidth;
     /**
      * 線の太さ。
      */
-    lineWidth: number;
+    get lineWidth(): number;
+    set lineWidth(lineWidth: number);
+    private _lineDash;
     /**
      * 破線。
      */
-    lineDash: {
+    get lineDash(): {
         dash: number;
         space: number;
     } | undefined;
+    set lineDash(lineDash: {
+        dash: number;
+        space: number;
+    } | undefined);
     /**
      * 指定位置に線を描画する。
      *

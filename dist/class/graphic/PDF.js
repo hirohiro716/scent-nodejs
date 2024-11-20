@@ -1,5 +1,5 @@
 import PDFKit from "pdfkit";
-import { MillimeterValue, NW7Renderer as ParentNW7Renderer, JAN13Renderer as ParentJAN13Renderer, StringObject, ByteArray } from "scent-typescript";
+import { MillimeterValue, GraphicalString as ParentGraphicalString, NW7Renderer as ParentNW7Renderer, JAN13Renderer as ParentJAN13Renderer, ByteArray } from "scent-typescript";
 import { Writable } from "stream";
 /**
  * PDFのクラス。このクラスではミリメートル単位で長さを指定する。
@@ -8,20 +8,14 @@ export default class PDF {
     /**
      * コンストラクタ。日本語フォントへのパス、用紙サイズ、余白を指定する。
      *
-     * @param pathToFont
+     * @param fontPath
      * @param paperSize
      * @param marginTop
      * @param marginLeft
      */
-    constructor(pathToFont, paperSize, marginTop, marginLeft) {
-        /**
-         * 描画色。
-         */
-        this.color = "#000";
-        /**
-         * フォントサイズ。
-         */
-        this.fontSize = 12;
+    constructor(fontPath, paperSize, marginTop, marginLeft) {
+        this._color = "#000";
+        this._fontSize = 12;
         /**
          * 行と行の間隔。
          */
@@ -42,78 +36,45 @@ export default class PDF {
          * 最後に自動調整されたフォントサイズ。
          */
         this.lastAdjustedFontSize = undefined;
-        /**
-         * 線の太さ。
-         */
-        this.lineWidth = 1;
-        /**
-         * 破線。
-         */
-        this.lineDash = undefined;
-        this.pathToFont = pathToFont;
-        this.pdfkit = new PDFKit({ font: pathToFont, size: paperSize });
+        this._lineWidth = 1;
+        this.pdfkit = new PDFKit({ font: fontPath, size: paperSize });
         this.pdfkit.translate(MillimeterValue.from(marginLeft).toPoint(), MillimeterValue.from(marginTop).toPoint());
+        this.pdfkit.fillColor(this._color);
+        this.pdfkit.strokeColor(this._color);
+        this._fontPath = fontPath;
+        this.pdfkit.font(this._fontPath, this._fontSize);
+        this.pdfkit.lineWidth(this._lineWidth);
     }
     /**
-     * 指定文字列を描画するレイアウトを作成する。
-     *
-     * @param text
-     * @param maximumWidth 最大幅。
-     * @param maximumHeight 最大高さ。
-     * @returns
+     * 描画色。
      */
-    createLayout(text, maximumWidth, maximumHeight) {
-        this.pdfkit.font(this.pathToFont, this.fontSize);
-        let fontSize = this.fontSize;
-        let lines = [];
-        let layout;
-        while (typeof layout === "undefined") {
-            let line = new StringObject();
-            for (let index = 0; index < text.length; index++) {
-                const one = new StringObject(text).extract(index, index + 1);
-                const width = MillimeterValue.fromPoint(this.pdfkit.widthOfString(line.clone().append(one).toString(), { lineBreak: false, width: Number.MAX_VALUE, height: Number.MAX_VALUE })).value;
-                if (this.allowAutomaticLineFeed && typeof maximumWidth !== "undefined" && maximumWidth < width || one.equals("\n")) {
-                    if (line.length() > 0) {
-                        lines.push(line.toString());
-                    }
-                    line = one.replaceLF("");
-                }
-                else {
-                    line.append(one);
-                }
-            }
-            lines.push(line.toString());
-            let width = 0;
-            let height = 0;
-            for (const line of lines) {
-                const lineWidth = MillimeterValue.fromPoint(this.pdfkit.widthOfString(line, { lineBreak: false, width: Number.MAX_VALUE, height: Number.MAX_VALUE })).value;
-                if (width < lineWidth) {
-                    width = lineWidth;
-                }
-                if (height > 0 && this.leading) {
-                    height += this.leading;
-                }
-                height += MillimeterValue.fromPoint(this.pdfkit.heightOfString(line, { lineBreak: false, width: Number.MAX_VALUE, height: Number.MAX_VALUE })).value;
-            }
-            let laidout = true;
-            if (fontSize > 1) {
-                if (maximumWidth && maximumWidth < width) {
-                    laidout = false;
-                }
-                if (maximumHeight && maximumHeight < height) {
-                    laidout = false;
-                }
-            }
-            if (laidout) {
-                layout = { lines: lines, fontSize: fontSize, width: width, height: height };
-                break;
-            }
-            lines = [];
-            fontSize -= 0.5;
-            this.pdfkit.font(this.pathToFont, fontSize);
-        }
-        this.lastAdjustedFontSize = layout.fontSize;
-        return layout;
+    get color() {
+        return this._color;
+    }
+    set color(color) {
+        this._color = color;
+        this.pdfkit.fillColor(color);
+        this.pdfkit.strokeColor(color);
+    }
+    /**
+     * フォントへのパス。
+     */
+    get fontPath() {
+        return this._fontPath;
+    }
+    set fontPath(fontPath) {
+        this._fontPath = fontPath;
+        this.pdfkit.font(this._fontPath, this._fontSize);
+    }
+    /**
+     * フォントサイズ。
+     */
+    get fontSize() {
+        return this._fontSize;
+    }
+    set fontSize(fontSize) {
+        this._fontSize = fontSize;
+        this.pdfkit.font(this._fontPath, this._fontSize);
     }
     /**
      * 指定文字列のサイズを計測する。この処理で自動調整されたフォントサイズはインスタンス内で保持される。
@@ -124,52 +85,16 @@ export default class PDF {
      * @returns
      */
     measureTextSize(text, maximumWidth, maximumHeight) {
-        let width = 0;
-        let height = 0;
-        const layout = this.createLayout(text, maximumWidth, maximumHeight);
-        if (typeof layout !== "undefined") {
-            width = layout.width;
-            height = layout.height;
+        const renderer = new GraphicalString(text, this);
+        if (maximumWidth) {
+            renderer.maximumWidth = MillimeterValue.from(maximumWidth).toPoint();
         }
-        return { width: width, height: height };
-    }
-    /**
-     * 指定された一行のテキストを描画して塗りつぶす。
-     *
-     * @param oneLine
-     * @param x
-     * @param y
-     * @param maximumWidth
-     * @returns 描画したテキストのサイズ。
-     */
-    printOneLine(oneLine, x, y, maximumWidth) {
-        const lineWidth = MillimeterValue.fromPoint(this.pdfkit.widthOfString(oneLine, { lineBreak: false, width: Number.MAX_VALUE, height: Number.MAX_VALUE })).value;
-        const lineHeight = MillimeterValue.fromPoint(this.pdfkit.heightOfString(oneLine, { lineBreak: false, width: Number.MAX_VALUE, height: Number.MAX_VALUE })).value;
-        let filledX = x;
-        switch (this.textHorizontalPosition) {
-            case "left":
-                this.pdfkit.text(oneLine, MillimeterValue.from(filledX).toPoint(), MillimeterValue.from(y).toPoint(), { lineBreak: false, width: Number.MAX_VALUE, height: Number.MAX_VALUE });
-                break;
-            case "center":
-                if (maximumWidth) {
-                    filledX += maximumWidth / 2;
-                }
-                filledX -= lineWidth / 2;
-                this.pdfkit.text(oneLine, MillimeterValue.from(filledX).toPoint(), MillimeterValue.from(y).toPoint(), { lineBreak: false, width: Number.MAX_VALUE, height: Number.MAX_VALUE });
-                break;
-            case "right":
-                if (maximumWidth) {
-                    filledX += maximumWidth;
-                }
-                filledX -= lineWidth;
-                this.pdfkit.text(oneLine, MillimeterValue.from(filledX).toPoint(), MillimeterValue.from(y).toPoint(), { lineBreak: false, width: Number.MAX_VALUE, height: Number.MAX_VALUE });
-                break;
+        if (maximumHeight) {
+            renderer.maximumHeight = MillimeterValue.from(maximumHeight).toPoint();
         }
-        let leading = this.leading;
-        if (typeof leading === "undefined") {
-            leading = 0;
-        }
-        return { width: lineWidth, height: lineHeight + leading };
+        const size = renderer.measureSize();
+        this.lastAdjustedFontSize = renderer.lastAdjustedFontSize;
+        return { width: MillimeterValue.fromPoint(size.width).value, height: MillimeterValue.fromPoint(size.height).value };
     }
     /**
      * 指定された位置にテキストを描画する。この処理で自動調整されたフォントサイズはインスタンス内で保持される。
@@ -182,38 +107,16 @@ export default class PDF {
      * @returns 描画したテキストのサイズ。
      */
     printText(text, x, y, maximumWidth, maximumHeight) {
-        this.pdfkit.fillColor(this.color);
-        const layout = this.createLayout(text, maximumWidth, maximumHeight);
-        if (typeof this.lastAdjustedFontSize !== "undefined") {
-            this.pdfkit.font(this.pathToFont, this.lastAdjustedFontSize);
+        const renderer = new GraphicalString(text, this);
+        if (maximumWidth) {
+            renderer.maximumWidth = MillimeterValue.from(maximumWidth).toPoint();
         }
-        else {
-            this.pdfkit.font(this.pathToFont, this.fontSize);
+        if (maximumHeight) {
+            renderer.maximumHeight = MillimeterValue.from(maximumHeight).toPoint();
         }
-        let printingY = y;
-        switch (this.textVerticalPosition) {
-            case "top":
-                for (const line of layout.lines) {
-                    const dimension = this.printOneLine(line, x, printingY);
-                    printingY += dimension.height;
-                }
-                break;
-            case "middle":
-                printingY -= layout.height / 2;
-                for (const line of layout.lines) {
-                    const dimension = this.printOneLine(line, x, printingY);
-                    printingY += dimension.height;
-                }
-                break;
-            case "bottom":
-                printingY -= layout.height;
-                for (const line of layout.lines) {
-                    const dimension = this.printOneLine(line, x, printingY);
-                    printingY += dimension.height;
-                }
-                break;
-        }
-        return { width: layout.width, height: layout.height };
+        const size = renderer.fill(MillimeterValue.from(x).toPoint(), MillimeterValue.from(y).toPoint());
+        this.lastAdjustedFontSize = renderer.lastAdjustedFontSize;
+        return { width: MillimeterValue.fromPoint(size.width).value, height: MillimeterValue.fromPoint(size.height).value };
     }
     /**
      * 指定されたBoundsの中にテキストを描画する。この処理で自動調整されたフォントサイズはインスタンス内で保持される。
@@ -223,40 +126,41 @@ export default class PDF {
      * @returns 描画したテキストのサイズ。
      */
     printTextInBox(text, bounds) {
-        this.pdfkit.fillColor(this.color);
-        const layout = this.createLayout(text, bounds.width, bounds.height);
-        if (typeof this.lastAdjustedFontSize !== "undefined") {
-            this.pdfkit.font(this.pathToFont, this.lastAdjustedFontSize);
+        const renderer = new GraphicalString(text, this);
+        const millimeterBounds = {
+            x: MillimeterValue.from(bounds.x).toPoint(),
+            y: MillimeterValue.from(bounds.y).toPoint(),
+            width: MillimeterValue.from(bounds.width).toPoint(),
+            height: MillimeterValue.from(bounds.height).toPoint()
+        };
+        const size = renderer.fillInBox(millimeterBounds);
+        this.lastAdjustedFontSize = renderer.lastAdjustedFontSize;
+        return { width: MillimeterValue.fromPoint(size.width).value, height: MillimeterValue.fromPoint(size.height).value };
+    }
+    /**
+     * 線の太さ。
+     */
+    get lineWidth() {
+        return this._lineWidth;
+    }
+    set lineWidth(lineWidth) {
+        this._lineWidth = lineWidth;
+        this.pdfkit.lineWidth(MillimeterValue.from(this.lineWidth).toPoint());
+    }
+    /**
+     * 破線。
+     */
+    get lineDash() {
+        return this._lineDash;
+    }
+    set lineDash(lineDash) {
+        this._lineDash = lineDash;
+        if (typeof this.lineDash === "undefined") {
+            this.pdfkit.undash();
         }
         else {
-            this.pdfkit.font(this.pathToFont, this.fontSize);
+            this.pdfkit.dash(MillimeterValue.from(this.lineDash.dash).toPoint(), { space: MillimeterValue.from(this.lineDash.space).toPoint() });
         }
-        let printingY = bounds.y;
-        switch (this.textVerticalPosition) {
-            case "top":
-                for (const line of layout.lines) {
-                    const dimension = this.printOneLine(line, bounds.x, printingY, bounds.width);
-                    printingY += dimension.height;
-                }
-                break;
-            case "middle":
-                printingY += bounds.height / 2;
-                printingY -= layout.height / 2;
-                for (const line of layout.lines) {
-                    const dimension = this.printOneLine(line, bounds.x, printingY, bounds.width);
-                    printingY += dimension.height;
-                }
-                break;
-            case "bottom":
-                printingY += bounds.height;
-                printingY -= layout.height;
-                for (const line of layout.lines) {
-                    const dimension = this.printOneLine(line, bounds.x, printingY, bounds.width);
-                    printingY += dimension.height;
-                }
-                break;
-        }
-        return { width: layout.width, height: layout.height };
     }
     /**
      * 指定位置に線を描画する。
@@ -267,17 +171,9 @@ export default class PDF {
      * @param endY
      */
     printLine(startX, startY, endX, endY) {
-        this.pdfkit.strokeColor(this.color);
-        this.pdfkit.lineWidth(MillimeterValue.from(this.lineWidth).toPoint());
-        if (typeof this.lineDash === "undefined") {
-            this.pdfkit.undash();
-        }
-        else {
-            this.pdfkit.dash(MillimeterValue.from(this.lineDash.dash).toPoint(), { space: MillimeterValue.from(this.lineDash.space).toPoint() });
-        }
         this.pdfkit.moveTo(MillimeterValue.from(startX).toPoint(), MillimeterValue.from(startY).toPoint());
         this.pdfkit.lineTo(MillimeterValue.from(endX).toPoint(), MillimeterValue.from(endY).toPoint());
-        this.pdfkit.stroke(this.color);
+        this.pdfkit.stroke();
     }
     /**
      * 指定位置に水平方向の直線を描画する。
@@ -309,13 +205,6 @@ export default class PDF {
      * @param radius
      */
     createRectanglePath(x, y, width, height, radius = 0) {
-        this.pdfkit.lineWidth(MillimeterValue.from(this.lineWidth).toPoint());
-        if (typeof this.lineDash === "undefined") {
-            this.pdfkit.undash();
-        }
-        else {
-            this.pdfkit.dash(MillimeterValue.from(this.lineDash.dash).toPoint(), { space: MillimeterValue.from(this.lineDash.space).toPoint() });
-        }
         this.pdfkit.moveTo(MillimeterValue.from(x + radius).toPoint(), MillimeterValue.from(y).toPoint());
         this.pdfkit.lineTo(MillimeterValue.from(x + width - radius).toPoint(), MillimeterValue.from(y).toPoint());
         this.pdfkit.quadraticCurveTo(MillimeterValue.from(x + width).toPoint(), MillimeterValue.from(y).toPoint(), MillimeterValue.from(x + width).toPoint(), MillimeterValue.from(y + radius).toPoint());
@@ -336,7 +225,6 @@ export default class PDF {
      * @param radius
      */
     printRectangleLine(x, y, width, height, radius = 0) {
-        this.pdfkit.strokeColor(this.color);
         this.createRectanglePath(x, y, width, height, radius);
         this.pdfkit.stroke();
     }
@@ -350,7 +238,6 @@ export default class PDF {
      * @param radius
      */
     printRectangleFill(x, y, width, height, radius = 0) {
-        this.pdfkit.fillColor(this.color);
         this.createRectanglePath(x, y, width, height, radius);
         this.pdfkit.fill();
     }
@@ -363,13 +250,6 @@ export default class PDF {
      * @param height
      */
     createEllipsePath(x, y, width, height) {
-        this.pdfkit.lineWidth(MillimeterValue.from(this.lineWidth).toPoint());
-        if (typeof this.lineDash === "undefined") {
-            this.pdfkit.undash();
-        }
-        else {
-            this.pdfkit.dash(MillimeterValue.from(this.lineDash.dash).toPoint(), { space: MillimeterValue.from(this.lineDash.space).toPoint() });
-        }
         this.pdfkit.moveTo(MillimeterValue.from(x + width / 2).toPoint(), MillimeterValue.from(y).toPoint());
         this.pdfkit.quadraticCurveTo(MillimeterValue.from(x + width).toPoint(), MillimeterValue.from(y).toPoint(), MillimeterValue.from(x + width).toPoint(), MillimeterValue.from(y + height / 2).toPoint());
         this.pdfkit.quadraticCurveTo(MillimeterValue.from(x + width).toPoint(), MillimeterValue.from(y + height).toPoint(), MillimeterValue.from(x + width / 2).toPoint(), MillimeterValue.from(y + height).toPoint());
@@ -385,7 +265,6 @@ export default class PDF {
      * @param height
      */
     printEllipseLine(x, y, width, height) {
-        this.pdfkit.strokeColor(this.color);
         this.createEllipsePath(x, y, width, height);
         this.pdfkit.stroke();
     }
@@ -398,7 +277,6 @@ export default class PDF {
      * @param height
      */
     printEllipseFill(x, y, width, height) {
-        this.pdfkit.fillColor(this.color);
         this.createEllipsePath(x, y, width, height);
         this.pdfkit.fill();
     }
@@ -445,7 +323,6 @@ export default class PDF {
      * @param height
      */
     printNW7(barcode, x, y, width, height) {
-        this.pdfkit.fillColor(this.color);
         const renderer = new NW7Renderer(barcode, this.pdfkit);
         renderer.render({ x: MillimeterValue.from(x).toPoint(), y: MillimeterValue.from(y).toPoint(), width: MillimeterValue.from(width).toPoint(), height: MillimeterValue.from(height).toPoint() });
     }
@@ -459,7 +336,6 @@ export default class PDF {
      * @param height
      */
     printJAN13(barcode, x, y, width, height) {
-        this.pdfkit.fillColor(this.color);
         const renderer = new JAN13Renderer(barcode, this.pdfkit);
         renderer.render({ x: MillimeterValue.from(x).toPoint(), y: MillimeterValue.from(y).toPoint(), width: MillimeterValue.from(width).toPoint(), height: MillimeterValue.from(height).toPoint() });
     }
@@ -484,6 +360,30 @@ export default class PDF {
             });
             writableStream.on("error", reject);
         });
+    }
+}
+class GraphicalString extends ParentGraphicalString {
+    constructor(string, pdf) {
+        super(string, pdf.pdfkit);
+        this.pdf = pdf;
+        this.allowAutomaticLineFeed = pdf.allowAutomaticLineFeed;
+        this.horizontalPosition = pdf.textHorizontalPosition;
+        this.verticalPosition = pdf.textVerticalPosition;
+        this.leading = MillimeterValue.from(pdf.leading).toPoint();
+    }
+    getFontSizeFromContext() {
+        return this.pdf.fontSize;
+    }
+    setFontSizeToContext(fontSize) {
+        this.pdf.fontSize = fontSize;
+    }
+    measureTextSize(text) {
+        const width = this.context.widthOfString(text, { lineBreak: false, width: Number.MAX_VALUE, height: Number.MAX_VALUE });
+        const height = this.context.heightOfString(text, { lineBreak: false, width: Number.MAX_VALUE, height: Number.MAX_VALUE });
+        return { width, height };
+    }
+    fillText(text, x, y) {
+        this.context.text(text, x, y, { lineBreak: false, width: Number.MAX_VALUE, height: Number.MAX_VALUE });
     }
 }
 class NW7Renderer extends ParentNW7Renderer {
