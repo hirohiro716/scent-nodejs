@@ -13,7 +13,7 @@ export default class PDF {
      * @param marginTop
      * @param marginLeft
      */
-    constructor(fontPath, paperSize, marginTop, marginLeft) {
+    constructor(fontPath, paperSize, paperOrientation, marginTop, marginLeft) {
         this._color = "#000";
         this._fontSize = 12;
         /**
@@ -37,7 +37,12 @@ export default class PDF {
          */
         this.lastAdjustedFontSize = undefined;
         this._lineWidth = 1;
-        this.pdfkit = new PDFKit({ font: fontPath, size: paperSize });
+        if (typeof paperSize === "string") {
+            this.pdfkit = new PDFKit({ font: fontPath, size: paperSize, layout: paperOrientation });
+        }
+        else {
+            this.pdfkit = new PDFKit({ font: fontPath, size: [MillimeterValue.from(paperSize.width).toPoint(), MillimeterValue.from(paperSize.height).toPoint()], layout: paperOrientation });
+        }
         this.pdfkit.translate(MillimeterValue.from(marginLeft).toPoint(), MillimeterValue.from(marginTop).toPoint());
         this.pdfkit.fillColor(this._color);
         this.pdfkit.strokeColor(this._color);

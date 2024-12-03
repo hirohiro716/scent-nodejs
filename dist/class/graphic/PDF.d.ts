@@ -1,5 +1,9 @@
 import { Dimension, ByteArray, Bounds } from "scent-typescript";
-type PaperSize = "A3" | "A4" | "A5" | "A6" | "B4" | "B5" | "B6";
+type PaperSize = "A3" | "A4" | "A5" | "A6" | "B4" | "B5" | "B6" | {
+    width: number;
+    height: number;
+};
+type PaperOrientation = "portrait" | "landscape";
 type VerticalPosition = "top" | "middle" | "bottom";
 type HorizontalPosition = "left" | "center" | "right";
 /**
@@ -14,7 +18,7 @@ export default class PDF {
      * @param marginTop
      * @param marginLeft
      */
-    constructor(fontPath: string, paperSize: PaperSize, marginTop: number, marginLeft: number);
+    constructor(fontPath: string, paperSize: PaperSize, paperOrientation: PaperOrientation, marginTop: number, marginLeft: number);
     readonly pdfkit: PDFKit.PDFDocument;
     private _color;
     /**

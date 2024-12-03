@@ -2,7 +2,9 @@ import PDFKit from "pdfkit";
 import { Dimension, MillimeterValue, GraphicalString as ParentGraphicalString, NW7Renderer as ParentNW7Renderer, JAN13Renderer as ParentJAN13Renderer, StringObject, ByteArray, Bounds } from "scent-typescript";
 import { Writable } from "stream";
 
-type PaperSize = "A3" | "A4" | "A5" | "A6" | "B4" | "B5" | "B6";
+type PaperSize = "A3" | "A4" | "A5" | "A6" | "B4" | "B5" | "B6" | {width: number, height: number};
+
+type PaperOrientation = "portrait" | "landscape";
 
 type VerticalPosition = "top" | "middle" | "bottom";
 
@@ -21,8 +23,12 @@ export default class PDF {
      * @param marginTop
      * @param marginLeft
      */
-    public constructor(fontPath: string, paperSize: PaperSize, marginTop: number, marginLeft: number) {
-        this.pdfkit = new PDFKit({font: fontPath, size: paperSize});
+    public constructor(fontPath: string, paperSize: PaperSize, paperOrientation: PaperOrientation, marginTop: number, marginLeft: number) {
+        if (typeof paperSize === "string") {
+            this.pdfkit = new PDFKit({font: fontPath, size: paperSize, layout: paperOrientation});
+        } else {
+            this.pdfkit = new PDFKit({font: fontPath, size: [MillimeterValue.from(paperSize.width).toPoint(), MillimeterValue.from(paperSize.height).toPoint()], layout: paperOrientation});
+        }
         this.pdfkit.translate(MillimeterValue.from(marginLeft).toPoint(), MillimeterValue.from(marginTop).toPoint());
         this.pdfkit.fillColor(this._color);
         this.pdfkit.strokeColor(this._color);
