@@ -9,7 +9,7 @@
         "build": "rm -rf dist/; tsc"
     },
     "dependencies": {
-        "formidable": "^3.5.0",
+        "formidable": "^3.5.4",
         "fs": "^0.0.1-security",
         "path": "^0.12.7",
         "jsqr": "^1.4.0",
@@ -18,7 +18,7 @@
         "pdfkit": "^0.15.1",
         "nodemailer": "^6.9.13",
         "pg": "^8.11.3",
-        "sqlite3": "^5.1.6",
+        "sqlite3": "^5.1.7",
         "prisma": "^4.14.0",
         "@prisma/client": "^4.16.2",
         "scent-typescript": "git+https://github.com/hirohiro716/scent-typescript.git"
