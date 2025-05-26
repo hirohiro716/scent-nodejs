@@ -239,7 +239,7 @@ export default class RecordBinder {
         if (this._whereSet === null) {
             throw new DatabaseError("Search condition for identification is missing.");
         }
-        const sql = new StringObject("SELECT (*) FROM ");
+        const sql = new StringObject("SELECT COUNT(*) FROM ");
         sql.append(this.getTable().physicalName);
         sql.append(" WHERE ");
         sql.append(this._whereSet.buildPlaceholderClause());
