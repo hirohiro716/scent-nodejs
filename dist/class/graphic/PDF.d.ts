@@ -214,8 +214,9 @@ export default class PDF {
      * @param y
      * @param width
      * @param height
+     * @param barScale バー描画の拡大率。1が初期値。
      */
-    printJAN13(barcode: string, x: number, y: number, width: number, height: number): void;
+    printJAN13(barcode: string, x: number, y: number, width: number, height: number, barScale: number): void;
     /**
      * PDFをバイト配列に変換する。
      *

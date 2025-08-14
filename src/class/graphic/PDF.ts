@@ -383,9 +383,11 @@ export default class PDF {
      * @param y 
      * @param width 
      * @param height 
+     * @param barScale バー描画の拡大率。1が初期値。
      */
-    public printJAN13(barcode: string, x: number, y: number, width: number, height: number) {
+    public printJAN13(barcode: string, x: number, y: number, width: number, height: number, barScale: number) {
         const renderer = new JAN13Renderer(barcode, this.pdfkit);
+        renderer.barScale = barScale;
         renderer.render({x: MillimeterValue.from(x).toPoint(), y: MillimeterValue.from(y).toPoint(), width: MillimeterValue.from(width).toPoint(), height: MillimeterValue.from(height).toPoint()});
     }
 
