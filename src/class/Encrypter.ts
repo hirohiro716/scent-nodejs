@@ -62,7 +62,7 @@ export class Encrypter {
             if (passwordOrKey instanceof ByteArray) {
                 this._key = passwordOrKey;
             } else if (typeof salt !== "undefined") {
-                this._key = new ByteArray(Crypto.scryptSync(passwordOrKey, salt, cipherInfo.keyLength));
+                this._key = new ByteArray(Crypto.scryptSync(passwordOrKey, salt, cipherInfo.keyLength) as Uint8Array);
             }
         }
     }
@@ -115,20 +115,20 @@ export class Encrypter {
      */
     public encrypt(data: Uint8Array): EncryptedData {
         if (typeof this._key === "undefined") {
-            this._key = new ByteArray(Crypto.randomBytes(this._cipherInfo.keyLength));
+            this._key = new ByteArray(Crypto.randomBytes(this._cipherInfo.keyLength) as Uint8Array);
         }
         const iv = Crypto.randomBytes(this._cipherInfo.ivLength!);
         const options: any = {authTagLength: this._authTagLength};
-        const cipher = Crypto.createCipheriv(this._algorithm, this._key.uint8Array, iv, options);
-        const encrypted = Buffer.concat([cipher.update(data), cipher.final()]);
+        const cipher = Crypto.createCipheriv(this._algorithm, this._key.uint8Array, iv as Uint8Array, options);
+        const encrypted = Buffer.concat([cipher.update(data) as Uint8Array, cipher.final() as Uint8Array]);
         let authTag = undefined;
         const cipherObject: any = cipher;
         if (typeof cipherObject.getAuthTag === "function") {
             authTag = new ByteArray(cipherObject.getAuthTag());
         }
         return {
-            content: new ByteArray(encrypted),
-            iv: new ByteArray(iv),
+            content: new ByteArray(encrypted as Uint8Array),
+            iv: new ByteArray(iv as Uint8Array),
             authTag: authTag,
         }
     }
@@ -140,7 +140,7 @@ export class Encrypter {
      */
     public decrypt(encryptedData: EncryptedData): Uint8Array {
         if (typeof this._key === "undefined") {
-            this._key = new ByteArray(Crypto.randomBytes(this._cipherInfo.keyLength));
+            this._key = new ByteArray(Crypto.randomBytes(this._cipherInfo.keyLength) as Uint8Array);
         }
         const options: any = {authTagLength: this._authTagLength};
         const decipher = Crypto.createDecipheriv(this._algorithm, this._key.uint8Array, encryptedData.iv.uint8Array, options);
@@ -148,7 +148,7 @@ export class Encrypter {
         if (typeof encryptedData.authTag !== "undefined" && typeof decipherObject.setAuthTag === "function") {
             decipherObject.setAuthTag(encryptedData.authTag.uint8Array);
         }
-        const decrypted = Buffer.concat( [decipher.update(encryptedData.content.uint8Array), decipher.final()]);
-        return decrypted;
+        const decrypted = Buffer.concat([decipher.update(encryptedData.content.uint8Array) as Uint8Array, decipher.final() as Uint8Array]);
+        return decrypted as Uint8Array;
     }
 }
