@@ -15,6 +15,8 @@ import QRCode from "./class/graphic/QRCode.js";
 import { Encrypter, EncryptedData } from "./class/Encrypter.js";
 import Hasher from "./class/Hasher.js";
 
+import EmailTransmitter from "./class/email/EmailTransmitter.js";
+
 import Pool from "./class/database/Pool.js";
 import Connector from "./class/database/Connector.js";
 import RecordBinder from "./class/database/RecordBinder.js";
@@ -37,6 +39,7 @@ export {
     Session,
     PDF, QRCode,
     Encrypter, Hasher,
+    EmailTransmitter,
     Pool, Connector, RecordBinder, SingleRecordBinder, RecordSearcher, DatabaseError, DataNotFoundError, RecordMapValidationError,
     PostgreSQL,
     SQLite, IsolationLevel,

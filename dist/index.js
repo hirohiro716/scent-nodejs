@@ -9,6 +9,7 @@ import PDF from "./class/graphic/PDF.js";
 import QRCode from "./class/graphic/QRCode.js";
 import { Encrypter } from "./class/Encrypter.js";
 import Hasher from "./class/Hasher.js";
+import EmailTransmitter from "./class/email/EmailTransmitter.js";
 import Pool from "./class/database/Pool.js";
 import Connector from "./class/database/Connector.js";
 import RecordBinder from "./class/database/RecordBinder.js";
@@ -20,4 +21,4 @@ import RecordMapValidationError from "./class/database/RecordMapValidationError.
 import { PostgreSQL } from "./class/database/PostgreSQL.js";
 import { SQLite, IsolationLevel } from "./class/database/SQLite.js";
 import Prisma from "./class/database/Prisma.js";
-export { FilesystemItem, File, ImageFile, Directory, CSV, FormParser, FormParseResult, Session, PDF, QRCode, Encrypter, Hasher, Pool, Connector, RecordBinder, SingleRecordBinder, RecordSearcher, DatabaseError, DataNotFoundError, RecordMapValidationError, PostgreSQL, SQLite, IsolationLevel, Prisma, };
+export { FilesystemItem, File, ImageFile, Directory, CSV, FormParser, FormParseResult, Session, PDF, QRCode, Encrypter, Hasher, EmailTransmitter, Pool, Connector, RecordBinder, SingleRecordBinder, RecordSearcher, DatabaseError, DataNotFoundError, RecordMapValidationError, PostgreSQL, SQLite, IsolationLevel, Prisma, };
