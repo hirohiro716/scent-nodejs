@@ -1,5 +1,5 @@
 import { RecordMap, StringObject } from "scent-typescript";
-import SingleRecordBinder from "./database/SingleRecordBinder";
+import SingleRecordBinder from "./database/SingleRecordBinder.js";
 /**
  * セッションの抽象クラス。
  */

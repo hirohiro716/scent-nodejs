@@ -1,5 +1,5 @@
 import { Property } from "scent-typescript";
-import RecordBinder from "./database/RecordBinder";
+import RecordBinder from "./database/RecordBinder.js";
 /**
  * セッションの抽象クラス。
  */
