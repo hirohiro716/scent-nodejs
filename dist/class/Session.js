@@ -1,4 +1,5 @@
 import { RecordMap, StringObject } from "scent-typescript";
+import SingleRecordBinder from "./database/SingleRecordBinder";
 /**
  * セッションの抽象クラス。
  */
@@ -121,15 +122,15 @@ export default class Session {
         if (Object.keys(preEditRecords[table.physicalName]).includes(whereSetStringObject.toString()) === false) {
             preEditRecords[table.physicalName][whereSetStringObject.toString()] = [];
         }
-        const isEmpty = recordBinder.records.length === 0;
         const preEditRecordObjects = preEditRecords[recordBinder.getTable().physicalName][whereSetStringObject.toString()];
         if (preEditRecordObjects !== null) {
             recordBinder.preEditRecords = [];
             for (const preEditRecordObject of preEditRecordObjects) {
                 const record = table.createRecord(preEditRecordObject);
                 recordBinder.preEditRecords.push(record);
-                if (isEmpty) {
-                    recordBinder.records.push(record.clone());
+                if (recordBinder.records.length === 0 && recordBinder instanceof SingleRecordBinder) {
+                    recordBinder.record = record.clone();
+                    break;
                 }
             }
         }
