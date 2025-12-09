@@ -92,6 +92,20 @@ export default abstract class Session {
      */
     abstract getPropertyOfPreEditRecords(): Property;
     /**
+     * 編集開始時のデータベースレコードの有効期限を格納するために使用するプロパティを取得する。
+     */
+    abstract getPropertyOfPreEditRecordExpirationDates(): Property | undefined;
+    /**
+     * 編集開始時のデータベースレコードの有効時間数を取得する。
+     */
+    protected abstract getPreEditRecordValidityHours(): number | undefined;
+    /**
+     * 指定された編集開始時のデータベースレコードから期限切れを取り除く。
+     *
+     * @param preEditRecords
+     */
+    private removeExpiredPreEditRecords;
+    /**
      * 指定されたRecordBinderインスタンスの編集開始時のレコードをセッションに格納する。
      * 格納されたレコードはRecordBinderインスタンスで更新する際のコンフリクト確認に使用される。
      *

@@ -1,4 +1,4 @@
-import { Property, RecordMap, StringObject } from "scent-typescript";
+import { Datetime, Property, RecordMap, StringObject } from "scent-typescript";
 import RecordBinder from "./database/RecordBinder.js";
 import SingleRecordBinder from "./database/SingleRecordBinder.js";
 
@@ -152,6 +152,37 @@ export default abstract class Session {
     public abstract getPropertyOfPreEditRecords(): Property;
 
     /**
+     * 編集開始時のデータベースレコードの有効期限を格納するために使用するプロパティを取得する。
+     */
+    public abstract getPropertyOfPreEditRecordExpirationDates(): Property | undefined;
+
+    /**
+     * 編集開始時のデータベースレコードの有効時間数を取得する。
+     */
+    protected abstract getPreEditRecordValidityHours(): number | undefined;
+
+    /**
+     * 指定された編集開始時のデータベースレコードから期限切れを取り除く。
+     * 
+     * @param preEditRecords
+     */
+    private removeExpiredPreEditRecords(preEditRecords: Record<string, Record<string, Array<Record<string, any>> | null>>): void {
+        const propertyOfPreEditRecordExpirationDates = this.getPropertyOfPreEditRecordExpirationDates();
+        if (propertyOfPreEditRecordExpirationDates) {
+            const expirationDates: Record<string, Record<string, string>> = {...this.data.get(propertyOfPreEditRecordExpirationDates.physicalName)};
+            for (const tableName of Object.keys({...expirationDates})) {
+                for (const whereSetObject of Object.keys(expirationDates[tableName])) {
+                    const limit = StringObject.from(expirationDates[tableName][whereSetObject]).toDatetime();
+                    if (limit === null || limit.getAllMilliseconds() < Datetime.from().getAllMilliseconds()) {
+                        delete expirationDates[tableName][whereSetObject]
+                        delete preEditRecords[tableName][whereSetObject]
+                    }
+                }
+            }
+        }
+    }
+
+    /**
      * 指定されたRecordBinderインスタンスの編集開始時のレコードをセッションに格納する。
      * 格納されたレコードはRecordBinderインスタンスで更新する際のコンフリクト確認に使用される。
      * 
@@ -159,6 +190,7 @@ export default abstract class Session {
      */
     public setPreEditRecords(recordBinder: RecordBinder<any>): void {
         const preEditRecords: Record<string, Record<string, Array<Record<string, any>> | null>> = {...this.data.get(this.getPropertyOfPreEditRecords().physicalName)};
+        this.removeExpiredPreEditRecords(preEditRecords);
         const table = recordBinder.getTable();
         if (Object.keys(preEditRecords).includes(table.physicalName) === false) {
             preEditRecords[table.physicalName] = {};
@@ -173,6 +205,17 @@ export default abstract class Session {
             preEditRecords[table.physicalName][whereSetStringObject.toString()] = RecordMap.toObjects(recordBinder.preEditRecords);
         }
         this.data.set(this.getPropertyOfPreEditRecords().physicalName, preEditRecords);
+        const propertyOfPreEditRecordExpirationDates = this.getPropertyOfPreEditRecordExpirationDates();
+        const preEditRecordValidityHours = this.getPreEditRecordValidityHours();
+        if (propertyOfPreEditRecordExpirationDates && preEditRecordValidityHours) {
+            const expirationDates: Record<string, Record<string, string>> = {...this.data.get(propertyOfPreEditRecordExpirationDates.physicalName)};
+            if (Object.keys(expirationDates).includes(table.physicalName) === false) {
+                expirationDates[table.physicalName] = {};
+            }
+            const limitDatetime = Datetime.from().addHour(preEditRecordValidityHours);
+            expirationDates[table.physicalName][whereSetStringObject.toString()] = limitDatetime.toString();
+            this.data.set(propertyOfPreEditRecordExpirationDates.physicalName, expirationDates);
+        }
     }
 
     /**
@@ -184,6 +227,7 @@ export default abstract class Session {
     public applyPreEditRecords(recordBinder: RecordBinder<any>): void {
         recordBinder.preEditRecords = [];
         const preEditRecords: Record<string, Record<string, Array<Record<string, any>> | null>> = {...this.data.get(this.getPropertyOfPreEditRecords().physicalName)};
+        this.removeExpiredPreEditRecords(preEditRecords);
         const table = recordBinder.getTable();
         if (Object.keys(preEditRecords).includes(table.physicalName) === false) {
             preEditRecords[table.physicalName] = {};

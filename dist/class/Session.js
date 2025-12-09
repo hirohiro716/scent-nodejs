@@ -1,4 +1,4 @@
-import { RecordMap, StringObject } from "scent-typescript";
+import { Datetime, RecordMap, StringObject } from "scent-typescript";
 import SingleRecordBinder from "./database/SingleRecordBinder.js";
 /**
  * セッションの抽象クラス。
@@ -79,6 +79,26 @@ export default class Session {
         return result;
     }
     /**
+     * 指定された編集開始時のデータベースレコードから期限切れを取り除く。
+     *
+     * @param preEditRecords
+     */
+    removeExpiredPreEditRecords(preEditRecords) {
+        const propertyOfPreEditRecordExpirationDates = this.getPropertyOfPreEditRecordExpirationDates();
+        if (propertyOfPreEditRecordExpirationDates) {
+            const expirationDates = { ...this.data.get(propertyOfPreEditRecordExpirationDates.physicalName) };
+            for (const tableName of Object.keys({ ...expirationDates })) {
+                for (const whereSetObject of Object.keys(expirationDates[tableName])) {
+                    const limit = StringObject.from(expirationDates[tableName][whereSetObject]).toDatetime();
+                    if (limit === null || limit.getAllMilliseconds() < Datetime.from().getAllMilliseconds()) {
+                        delete expirationDates[tableName][whereSetObject];
+                        delete preEditRecords[tableName][whereSetObject];
+                    }
+                }
+            }
+        }
+    }
+    /**
      * 指定されたRecordBinderインスタンスの編集開始時のレコードをセッションに格納する。
      * 格納されたレコードはRecordBinderインスタンスで更新する際のコンフリクト確認に使用される。
      *
@@ -86,6 +106,7 @@ export default class Session {
      */
     setPreEditRecords(recordBinder) {
         const preEditRecords = { ...this.data.get(this.getPropertyOfPreEditRecords().physicalName) };
+        this.removeExpiredPreEditRecords(preEditRecords);
         const table = recordBinder.getTable();
         if (Object.keys(preEditRecords).includes(table.physicalName) === false) {
             preEditRecords[table.physicalName] = {};
@@ -100,6 +121,17 @@ export default class Session {
             preEditRecords[table.physicalName][whereSetStringObject.toString()] = RecordMap.toObjects(recordBinder.preEditRecords);
         }
         this.data.set(this.getPropertyOfPreEditRecords().physicalName, preEditRecords);
+        const propertyOfPreEditRecordExpirationDates = this.getPropertyOfPreEditRecordExpirationDates();
+        const preEditRecordValidityHours = this.getPreEditRecordValidityHours();
+        if (propertyOfPreEditRecordExpirationDates && preEditRecordValidityHours) {
+            const expirationDates = { ...this.data.get(propertyOfPreEditRecordExpirationDates.physicalName) };
+            if (Object.keys(expirationDates).includes(table.physicalName) === false) {
+                expirationDates[table.physicalName] = {};
+            }
+            const limitDatetime = Datetime.from().addHour(preEditRecordValidityHours);
+            expirationDates[table.physicalName][whereSetStringObject.toString()] = limitDatetime.toString();
+            this.data.set(propertyOfPreEditRecordExpirationDates.physicalName, expirationDates);
+        }
     }
     /**
      * 指定されたRecordBinderインスタンスにセッションに格納されている編集開始時のレコードを適用する。
@@ -110,6 +142,7 @@ export default class Session {
     applyPreEditRecords(recordBinder) {
         recordBinder.preEditRecords = [];
         const preEditRecords = { ...this.data.get(this.getPropertyOfPreEditRecords().physicalName) };
+        this.removeExpiredPreEditRecords(preEditRecords);
         const table = recordBinder.getTable();
         if (Object.keys(preEditRecords).includes(table.physicalName) === false) {
             preEditRecords[table.physicalName] = {};
