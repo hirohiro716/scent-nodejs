@@ -110,19 +110,79 @@ export default abstract class RecordBinder<C extends Connector<any, any>> {
      */
     protected abstract getOrderByColumnsForEdit(): string[];
 
-    private _preEditRecords: RecordMap[] | null = null;
+    private _preEditRecords: ReadonlyArray<RecordMap> | null = null;
+
+    private idAndPreEditRecord: Map<string, RecordMap> = new Map();
 
     /**
      * 編集開始時のデータベースレコードのクローン。コンフリクトの検出に使用される。
      * 
      * @returns 
      */
-    public get preEditRecords(): RecordMap[] | null {
+    public get preEditRecords(): ReadonlyArray<RecordMap> | null {
         return this._preEditRecords;
     }
 
     public set preEditRecords(preEditRecords: RecordMap[]) {
         this._preEditRecords = preEditRecords;
+        this.idAndPreEditRecord.clear();
+        for (const preEditRecord of preEditRecords) {
+            this.idAndPreEditRecord.set(this.getIdentifier(preEditRecord), preEditRecord);
+        }
+    }
+
+    /**
+     * 指定されたレコードの編集前のレコードを返す。見つからない場合はnullを返す。
+     * 
+     * @param record 
+     * @returns
+     */
+    public findPreEditRecord(record: RecordMap): RecordMap | null {
+        const preEditRecord = this.idAndPreEditRecord.get(StringObject.from(this.getIdentifier(record)).toString());
+        if (preEditRecord) {
+            return preEditRecord;
+        }
+        return null;
+    }
+
+    /**
+     * 指定されたレコードとカラムのフィールドの編集前の値を返す。編集前のレコードが見つからない場合はundefinedを返す。
+     * 
+     * @param record 
+     * @param column 
+     * @returns
+     */
+    public findPreEditRecordValue(record: RecordMap, column: Column): any | undefined {
+        const id = StringObject.from(this.getIdentifier(record)).toString();
+        const preEditRecord = this.idAndPreEditRecord.get(id);
+        if (typeof preEditRecord === "undefined") {
+            return undefined;
+        }
+        return preEditRecord.get(column);
+    }
+
+    /**
+     * 指定されたレコードが、既存レコードが変更されたもの、または新規レコードの場合にtrueを返す。
+     * 
+     * @param record 
+     * @param excludeColumns
+     * @returns
+     */
+    protected isModified(record: RecordMap, excludeColumns: Column[]): boolean {
+        const id = StringObject.from(this.getIdentifier(record)).toString();
+        const preEditRecord = this.idAndPreEditRecord.get(id);
+        if (preEditRecord) {
+            const currentRecordText = new StringObject();
+            const preEditRecordText = new StringObject();
+            for (const column of this.getColumns()) {
+                if (excludeColumns.includes(column) === false) {
+                    currentRecordText.append(record.get(column));
+                    preEditRecordText.append(preEditRecord.get(column));
+                }
+            }
+            return currentRecordText.equals(preEditRecordText) === false;
+        }
+        return true;
     }
 
     /**
@@ -175,10 +235,14 @@ export default abstract class RecordBinder<C extends Connector<any, any>> {
      */
     public async edit(): Promise<void> {
         const editingRecords = await this.fetchRecordsForEdit();
-        this._preEditRecords = [];
+        const preEditRecords: RecordMap[] = [];
+        this.idAndPreEditRecord.clear();
         for (const record of editingRecords) {
-            this._preEditRecords.push(record.clone());
+            const preEditRecord = record.clone();
+            preEditRecords.push(preEditRecord);
+            this.idAndPreEditRecord.set(this.getIdentifier(preEditRecord), preEditRecord);
         }
+        this._preEditRecords = preEditRecords;
         this.editingRecords = editingRecords;
     }
 

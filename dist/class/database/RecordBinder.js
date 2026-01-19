@@ -18,6 +18,7 @@ export default class RecordBinder {
         this._whereSet = null;
         this.editingRecords = [];
         this._preEditRecords = null;
+        this.idAndPreEditRecord = new Map();
         this._isConflictIgnored = false;
         this._connector = connector;
     }
@@ -69,6 +70,61 @@ export default class RecordBinder {
     }
     set preEditRecords(preEditRecords) {
         this._preEditRecords = preEditRecords;
+        this.idAndPreEditRecord.clear();
+        for (const preEditRecord of preEditRecords) {
+            this.idAndPreEditRecord.set(this.getIdentifier(preEditRecord), preEditRecord);
+        }
+    }
+    /**
+     * 指定されたレコードの編集前のレコードを返す。見つからない場合はnullを返す。
+     *
+     * @param record
+     * @returns
+     */
+    findPreEditRecord(record) {
+        const preEditRecord = this.idAndPreEditRecord.get(StringObject.from(this.getIdentifier(record)).toString());
+        if (preEditRecord) {
+            return preEditRecord;
+        }
+        return null;
+    }
+    /**
+     * 指定されたレコードとカラムのフィールドの編集前の値を返す。編集前のレコードが見つからない場合はundefinedを返す。
+     *
+     * @param record
+     * @param column
+     * @returns
+     */
+    findPreEditRecordValue(record, column) {
+        const id = StringObject.from(this.getIdentifier(record)).toString();
+        const preEditRecord = this.idAndPreEditRecord.get(id);
+        if (typeof preEditRecord === "undefined") {
+            return undefined;
+        }
+        return preEditRecord.get(column);
+    }
+    /**
+     * 指定されたレコードが、既存レコードが変更されたもの、または新規レコードの場合にtrueを返す。
+     *
+     * @param record
+     * @param excludeColumns
+     * @returns
+     */
+    isModified(record, excludeColumns) {
+        const id = StringObject.from(this.getIdentifier(record)).toString();
+        const preEditRecord = this.idAndPreEditRecord.get(id);
+        if (preEditRecord) {
+            const currentRecordText = new StringObject();
+            const preEditRecordText = new StringObject();
+            for (const column of this.getColumns()) {
+                if (excludeColumns.includes(column) === false) {
+                    currentRecordText.append(record.get(column));
+                    preEditRecordText.append(preEditRecord.get(column));
+                }
+            }
+            return currentRecordText.equals(preEditRecordText) === false;
+        }
+        return true;
     }
     /**
      * 編集するためのレコードを取得する。
@@ -120,10 +176,14 @@ export default class RecordBinder {
      */
     async edit() {
         const editingRecords = await this.fetchRecordsForEdit();
-        this._preEditRecords = [];
+        const preEditRecords = [];
+        this.idAndPreEditRecord.clear();
         for (const record of editingRecords) {
-            this._preEditRecords.push(record.clone());
+            const preEditRecord = record.clone();
+            preEditRecords.push(preEditRecord);
+            this.idAndPreEditRecord.set(this.getIdentifier(preEditRecord), preEditRecord);
         }
+        this._preEditRecords = preEditRecords;
         this.editingRecords = editingRecords;
     }
     /**

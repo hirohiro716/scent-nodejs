@@ -202,7 +202,7 @@ export default abstract class Session {
         }
         preEditRecords[table.physicalName][whereSetStringObject.toString()] = null;
         if (recordBinder.preEditRecords !== null) {
-            preEditRecords[table.physicalName][whereSetStringObject.toString()] = RecordMap.toObjects(recordBinder.preEditRecords);
+            preEditRecords[table.physicalName][whereSetStringObject.toString()] = RecordMap.toObjects([...recordBinder.preEditRecords]);
         }
         this.data.set(this.getPropertyOfPreEditRecords().physicalName, preEditRecords);
         const propertyOfPreEditRecordExpirationDates = this.getPropertyOfPreEditRecordExpirationDates();
@@ -225,7 +225,6 @@ export default abstract class Session {
      * @param recordBinder 
      */
     public applyPreEditRecords(recordBinder: RecordBinder<any>): void {
-        recordBinder.preEditRecords = [];
         const preEditRecords: Record<string, Record<string, Array<Record<string, any>> | null>> = {...this.data.get(this.getPropertyOfPreEditRecords().physicalName)};
         this.removeExpiredPreEditRecords(preEditRecords);
         const table = recordBinder.getTable();
@@ -240,17 +239,18 @@ export default abstract class Session {
         if (Object.keys(preEditRecords[table.physicalName]).includes(whereSetStringObject.toString()) === false) {
             preEditRecords[table.physicalName][whereSetStringObject.toString()] = [];
         }
-        const preEditRecordObjects = preEditRecords[recordBinder.getTable().physicalName][whereSetStringObject.toString()];
-        if (preEditRecordObjects !== null) {
-            recordBinder.preEditRecords = [];
-            for (const preEditRecordObject of preEditRecordObjects) {
-                const record = table.createRecord(preEditRecordObject);
-                recordBinder.preEditRecords.push(record);
+        const sessionPreEditRecordObjects = preEditRecords[recordBinder.getTable().physicalName][whereSetStringObject.toString()];
+        if (sessionPreEditRecordObjects !== null) {
+            const sessionPreEditRecords: RecordMap[] = [];
+            for (const sessionPreEditRecordObject of sessionPreEditRecordObjects) {
+                const sessionPreEditRecord = table.createRecord(sessionPreEditRecordObject);
+                sessionPreEditRecords.push(sessionPreEditRecord);
                 if (recordBinder.records.length === 0 && recordBinder instanceof SingleRecordBinder) {
-                    recordBinder.record = record.clone();
+                    recordBinder.record = sessionPreEditRecord.clone();
                     break;
                 }
             }
+            recordBinder.preEditRecords = sessionPreEditRecords;
         }
     }
 }

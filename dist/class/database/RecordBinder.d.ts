@@ -71,13 +71,37 @@ export default abstract class RecordBinder<C extends Connector<any, any>> {
      */
     protected abstract getOrderByColumnsForEdit(): string[];
     private _preEditRecords;
+    private idAndPreEditRecord;
     /**
      * 編集開始時のデータベースレコードのクローン。コンフリクトの検出に使用される。
      *
      * @returns
      */
-    get preEditRecords(): RecordMap[] | null;
+    get preEditRecords(): ReadonlyArray<RecordMap> | null;
     set preEditRecords(preEditRecords: RecordMap[]);
+    /**
+     * 指定されたレコードの編集前のレコードを返す。見つからない場合はnullを返す。
+     *
+     * @param record
+     * @returns
+     */
+    findPreEditRecord(record: RecordMap): RecordMap | null;
+    /**
+     * 指定されたレコードとカラムのフィールドの編集前の値を返す。編集前のレコードが見つからない場合はundefinedを返す。
+     *
+     * @param record
+     * @param column
+     * @returns
+     */
+    findPreEditRecordValue(record: RecordMap, column: Column): any | undefined;
+    /**
+     * 指定されたレコードが、既存レコードが変更されたもの、または新規レコードの場合にtrueを返す。
+     *
+     * @param record
+     * @param excludeColumns
+     * @returns
+     */
+    protected isModified(record: RecordMap, excludeColumns: Column[]): boolean;
     /**
      * 編集するためのレコードを取得する。
      *
