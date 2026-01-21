@@ -100,7 +100,7 @@ export default abstract class Session {
     }
 
     /**
-     * セッションデータを保存してセッションIDを指定されたリソースに保存する。
+     * 指定されたリソースからセッションIDを取り出して、セッションデータを記憶媒体から取得する。
      * 
      * @param resource 
      */
