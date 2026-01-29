@@ -59,7 +59,7 @@ export default abstract class Session {
      */
     protected loadFromID(id: string): Promise<void>;
     /**
-     * セッションデータを保存してセッションIDを指定されたリソースに保存する。
+     * 指定されたリソースからセッションIDを取り出して、セッションデータを記憶媒体から取得する。
      *
      * @param resource
      */

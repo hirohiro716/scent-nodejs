@@ -1,7 +1,5 @@
 import * as nodeQrcode from "qrcode";
 import { ByteArray } from "scent-typescript";
-import jsQR from "jsqr";
-import sharp from "sharp";
 /**
  * QRコードのクラス。
  */
@@ -32,7 +30,9 @@ export default class QRCode {
             else {
                 buffer = this.contentOrImageData.toBuffer();
             }
+            const sharp = require("sharp");
             const { data, info } = await sharp(buffer).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+            const jsQR = require("jsqr");
             const qrcode = jsQR(new Uint8ClampedArray(data.buffer), info.width, info.height);
             if (qrcode === null) {
                 throw new Error("Could not parse the QR code.");

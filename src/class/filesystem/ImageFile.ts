@@ -1,5 +1,4 @@
 import { Readable } from "stream";
-import sharp from "sharp";
 import File from "./File.js";
 import { ByteArray, Dimension } from "scent-typescript";
 
@@ -16,6 +15,7 @@ export default class ImageFile extends File {
      * @returns
      */
     public async change({format, qualityPercentage, resizeLongSide: resizeLongSide}: {format?: FormatType, qualityPercentage?: number, resizeLongSide?: number}): Promise<Readable> {
+        const sharp = require("sharp");
         let sharpInstance = sharp(this.getAbsolutePath());
         const meta = await sharpInstance.metadata();
         if (format) {
@@ -46,6 +46,7 @@ export default class ImageFile extends File {
      * @throws Error 画像の読み取りに失敗した場合。
      */
     public static async getImageSizeFrom(imagePathOrBuffer: string | Buffer | ByteArray): Promise<Dimension> {
+        const sharp = require("sharp");
         let sharpInstance;
         if (imagePathOrBuffer instanceof ByteArray) {
             sharpInstance = sharp(await imagePathOrBuffer.toBuffer());
