@@ -1,7 +1,7 @@
 import { Writable } from "stream";
 import File from "../filesystem/File.js";
 import { StringDecoder } from "string_decoder";
-import { StringObject } from "scent-typescript";
+import { ByteArray, StringObject } from "scent-typescript";
 
 /**
  * CSVのクラス。
@@ -65,6 +65,29 @@ export default class CSV {
         this._rows = rows;
     }
 
+    /**
+     * CSVファイル(utf-8)をバイト配列に変換する。
+     * 
+     * @returns 
+     */
+    public async toByteArray(): Promise<ByteArray> {
+        let buffers: Uint8Array[] = [];
+        const writableStream = new Writable({
+            write(chunk, encoding, callback) {
+              buffers.push(chunk);
+              callback();
+            }
+        });
+        await this.write(writableStream);
+        writableStream.end();
+        return new Promise<ByteArray>((resolve, reject) => {
+            writableStream.on("finish", () => {
+                resolve(ByteArray.from(Buffer.concat(buffers)));
+            });
+            writableStream.on("error", reject);
+        });
+    }
+    
     /**
      * CSVファイル(utf-8)をStreamに書き込む。
      * 

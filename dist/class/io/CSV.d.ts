@@ -1,5 +1,6 @@
 import { Writable } from "stream";
 import File from "../filesystem/File.js";
+import { ByteArray } from "scent-typescript";
 /**
  * CSVのクラス。
  */
@@ -32,6 +33,12 @@ export default class CSV {
      */
     get rows(): string[][];
     set rows(rows: string[][]);
+    /**
+     * CSVファイル(utf-8)をバイト配列に変換する。
+     *
+     * @returns
+     */
+    toByteArray(): Promise<ByteArray>;
     /**
      * CSVファイル(utf-8)をStreamに書き込む。
      *
