@@ -52,6 +52,18 @@ export default class File extends FilesystemItem {
      */
     getSize(): Promise<number>;
     /**
+     * ファイルの最終アクセス日時を取得する。
+     *
+     * @returns
+     */
+    getLastAccessTime(): Promise<Date>;
+    /**
+     * ファイルの最終更新日時を取得する。
+     *
+     * @returns
+     */
+    getLastUpdateTime(): Promise<Date>;
+    /**
      * このファイルを読み取りできるStreamを作成する。
      *
      * @param highWaterMark バッファの容量の制限。

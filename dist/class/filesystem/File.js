@@ -72,6 +72,24 @@ export default class File extends FilesystemItem {
         return stats.size;
     }
     /**
+     * ファイルの最終アクセス日時を取得する。
+     *
+     * @returns
+     */
+    async getLastAccessTime() {
+        const stats = await fs.promises.stat(this.path);
+        return stats.atime;
+    }
+    /**
+     * ファイルの最終更新日時を取得する。
+     *
+     * @returns
+     */
+    async getLastUpdateTime() {
+        const stats = await fs.promises.stat(this.path);
+        return stats.mtime;
+    }
+    /**
      * このファイルを読み取りできるStreamを作成する。
      *
      * @param highWaterMark バッファの容量の制限。
