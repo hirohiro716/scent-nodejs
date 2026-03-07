@@ -23,11 +23,11 @@ export default class QRCode {
             return this.contentOrImageData;
         }
         else {
-            let buffer;
+            let buffer = undefined;
             if (this.contentOrImageData instanceof Buffer) {
                 buffer = this.contentOrImageData;
             }
-            else {
+            if (this.contentOrImageData instanceof ByteArray) {
                 buffer = this.contentOrImageData.toBuffer();
             }
             const sharp = require("sharp");

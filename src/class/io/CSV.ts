@@ -100,39 +100,34 @@ export default class CSV {
         }
         return new Promise<void>((resolve, reject) => {
             let index = 0;
-            const write: () => void = () => {
-                if (index >= writing.length) {
-                    resolve();
-                    return;
-                }
-                const row: string[] = writing[index];
-                const line = new StringObject();
-                for (const value of row) {
-                    if (line.length() > 0) {
-                        line.append(this._delimiter);
+            const writeNext: () => void = () => {
+                while (index < writing.length) {
+                    const row: string[] = writing[index];
+                    const line = new StringObject();
+                    for (const value of row) {
+                        if (line.length() > 0) {
+                            line.append(this._delimiter);
+                        }
+                        line.append('"');
+                        line.append(StringObject.from(value).replace('"', '""'));
+                        line.append('"');
                     }
-                    line.append('"');
-                    line.append(StringObject.from(value).replace('"', '""'));
-                    line.append('"');
-                }
-                line.append(this._lineSeparator);
-                const result = writable.write(line.toString(), "utf-8", (error) => {
-                    if (error) {
-                        reject(error);
+                    line.append(this._lineSeparator);
+                    const result = writable.write(line.toString(), "utf-8");
+                    index++;
+                    if (result === false) {
+                        writable.once("drain", () => {
+                            writeNext();
+                        });
+                        return;
                     }
-                });
-                index++;
-                if (result) {
-                    write();
                 }
-            }
-            writable.on("error", (error) => {
+                resolve();
+            };
+            writable.once("error", (error) => {
                 reject(error);
             });
-            writable.on("drain", () => {
-                write();
-            });
-            write();
+            writeNext();
         });
     }
 
