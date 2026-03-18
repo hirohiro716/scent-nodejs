@@ -13,6 +13,7 @@ export default class EmailTransmitter {
         this._port = 587;
         this._isEnableTLS = true;
         this.recipientAddresses = { "to": [], "cc": [], "bcc": [] };
+        this._attachments = new Map();
         this._isEnableDebug = false;
     }
     /**
@@ -99,6 +100,12 @@ export default class EmailTransmitter {
         });
     }
     /**
+     * キーがファイル名、値が添付ファイル本体の連想配列。
+     */
+    get attachments() {
+        return this._attachments;
+    }
+    /**
      * デバッグを有効にする場合はtrue。
      */
     get isEnableDebug() {
@@ -141,13 +148,26 @@ export default class EmailTransmitter {
         text.replaceCRLF(this._lineSeparator);
         text.replaceCR(this._lineSeparator);
         text.replaceLF(this._lineSeparator);
+        const attachments = [];
+        for (const filename of this._attachments.keys()) {
+            const file = this._attachments.get(filename);
+            try {
+                if (await file.isFile()) {
+                    attachments.push({ filename: filename, path: file.getAbsolutePath() });
+                }
+            }
+            catch (error) {
+                // nop
+            }
+        }
         await transport.sendMail({
             from: this._myAddress,
             to: this.recipientAddresses.to,
             cc: this.recipientAddresses.cc,
             bcc: this.recipientAddresses.bcc,
             subject: subject,
-            text: text.toString()
+            text: text.toString(),
+            attachments: attachments
         });
     }
 }

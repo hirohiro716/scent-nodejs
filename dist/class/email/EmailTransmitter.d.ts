@@ -1,3 +1,4 @@
+import File from "../filesystem/File.js";
 type RecipientType = "to" | "cc" | "bcc";
 /**
  * nodemailerを使用してE-mailを送信するクラス。
@@ -59,6 +60,11 @@ export default class EmailTransmitter {
      * @param recipientAddress
      */
     removeRecipientAddress(recipientAddress: string): void;
+    private _attachments;
+    /**
+     * キーがファイル名、値が添付ファイル本体の連想配列。
+     */
+    get attachments(): Map<string, File>;
     private _isEnableDebug;
     /**
      * デバッグを有効にする場合はtrue。

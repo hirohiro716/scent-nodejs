@@ -1,5 +1,6 @@
 import { createTransport } from "nodemailer";
 import { StringObject } from "scent-typescript";
+import File from "../filesystem/File.js";
 
 type RecipientType = "to" | "cc" | "bcc";
 
@@ -123,6 +124,15 @@ export default class EmailTransmitter {
         });
     }
 
+    private _attachments: Map<string, File> = new Map();
+
+    /**
+     * キーがファイル名、値が添付ファイル本体の連想配列。
+     */
+    public get attachments(): Map<string, File> {
+        return this._attachments;
+    }
+
     private _isEnableDebug: boolean = false;
 
     /**
@@ -170,13 +180,25 @@ export default class EmailTransmitter {
         text.replaceCRLF(this._lineSeparator);
         text.replaceCR(this._lineSeparator);
         text.replaceLF(this._lineSeparator);
+        const attachments: {filename: string, path: string}[] = [];
+        for (const filename of this._attachments.keys()) {
+            const file = this._attachments.get(filename)!;
+            try {
+                if (await file.isFile()) {
+                    attachments.push({filename: filename, path: file.getAbsolutePath()});
+                }
+            } catch (error: any) {
+                // nop
+            }
+        }
         await transport.sendMail({
             from: this._myAddress,
             to: this.recipientAddresses.to,
             cc: this.recipientAddresses.cc,
             bcc: this.recipientAddresses.bcc,
             subject: subject,
-            text: text.toString()
+            text: text.toString(),
+            attachments: attachments
         });
     }
 }
