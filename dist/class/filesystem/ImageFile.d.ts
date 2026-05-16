@@ -29,7 +29,7 @@ export default class ImageFile extends File {
      * @param changeType
      * @returns
      */
-    static changeBuffer(inputBuffer: Buffer, changeType: ChangeType): Promise<Readable>;
+    static changeBuffer(inputBuffer: ArrayBufferLike, changeType: ChangeType): Promise<Readable>;
     /**
      * この画像を変更したストリームを取得する。
      *
@@ -51,7 +51,7 @@ export default class ImageFile extends File {
      * @param inputBuffer
      * @param changeType 画像を変更する場合に指定する。
      */
-    static from(fileName: string, directory?: Directory, inputBuffer?: Buffer, changeType?: ChangeType): Promise<ImageFile>;
+    static from(fileName: string, directory?: Directory, inputBuffer?: ArrayBufferLike, changeType?: ChangeType): Promise<ImageFile>;
     /**
      * 指定されたパスにバッファの画像ファイルを作成する。
      *
@@ -59,7 +59,7 @@ export default class ImageFile extends File {
      * @param inputBuffer
      * @param changeType 画像を変更する場合に指定する。
      */
-    static from(fileName: string, inputBuffer?: Buffer, changeType?: ChangeType): Promise<ImageFile>;
+    static from(fileName: string, inputBuffer?: ArrayBufferLike, changeType?: ChangeType): Promise<ImageFile>;
     /**
      * 指定された画像の幅と高さを取得する。
      *

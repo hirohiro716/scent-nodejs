@@ -29,7 +29,7 @@ export default class ImageFile extends File {
      * @param changeType 
      * @returns 
      */
-    public static async changeBuffer(inputBuffer: Buffer, changeType: ChangeType): Promise<Readable> {
+    public static async changeBuffer(inputBuffer: ArrayBufferLike, changeType: ChangeType): Promise<Readable> {
         const sharp = require("sharp");
         let sharpInstance = sharp(inputBuffer);
         const meta = await sharpInstance.metadata();
@@ -72,7 +72,7 @@ export default class ImageFile extends File {
      * @param inputBuffer 
      * @param changeType 画像を変更する場合に指定する。
      */
-    public static async from(fileName: string, directory?: Directory, inputBuffer?: Buffer, changeType?: ChangeType): Promise<ImageFile>;
+    public static async from(fileName: string, directory?: Directory, inputBuffer?: ArrayBufferLike, changeType?: ChangeType): Promise<ImageFile>;
 
     /**
      * 指定されたパスにバッファの画像ファイルを作成する。
@@ -81,17 +81,17 @@ export default class ImageFile extends File {
      * @param inputBuffer 
      * @param changeType 画像を変更する場合に指定する。
      */
-    public static async from(fileName: string, inputBuffer?: Buffer, changeType?: ChangeType): Promise<ImageFile>;
+    public static async from(fileName: string, inputBuffer?: ArrayBufferLike, changeType?: ChangeType): Promise<ImageFile>;
 
     /**
      * @deprecated
      */
-    public static async from(parameter1: string, parameter2?: Directory | Buffer, parameter3?: Buffer | ChangeType, parameter4?: ChangeType): Promise<ImageFile> {
-        let inputBuffer: Buffer | undefined;
-        if (parameter2 instanceof Buffer) {
+    public static async from(parameter1: string, parameter2?: Directory | ArrayBufferLike, parameter3?: ArrayBufferLike | ChangeType, parameter4?: ChangeType): Promise<ImageFile> {
+        let inputBuffer: ArrayBufferLike | undefined;
+        if (parameter2 instanceof ArrayBuffer) {
             inputBuffer = parameter2;
         }
-        if (parameter3 instanceof Buffer) {
+        if (parameter3 instanceof ArrayBuffer) {
             inputBuffer = parameter3;
         }
         if (typeof inputBuffer === "undefined") {

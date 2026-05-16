@@ -189,13 +189,13 @@ export default class PDF {
     /**
      * 指定された画像を描画する。
      *
-     * @param pathToImage
+     * @param image
      * @param x
      * @param y
      * @param width
      * @param height
      */
-    printImage(pathToImage: string | Buffer, x: number, y: number, width?: number, height?: number): void;
+    printImage(image: string | ArrayBufferLike, x: number, y: number, width?: number, height?: number): void;
     /**
      * 指定された位置に指定された大きさでNW-7のバーコードを印刷する。
      *

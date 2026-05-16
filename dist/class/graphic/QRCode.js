@@ -24,7 +24,7 @@ export default class QRCode {
         }
         else {
             let buffer = undefined;
-            if (this.contentOrImageData instanceof Buffer) {
+            if (this.contentOrImageData instanceof ArrayBuffer) {
                 buffer = this.contentOrImageData;
             }
             if (this.contentOrImageData instanceof ByteArray) {

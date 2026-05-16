@@ -288,13 +288,13 @@ export default class PDF {
     /**
      * 指定された画像を描画する。
      *
-     * @param pathToImage
+     * @param image
      * @param x
      * @param y
      * @param width
      * @param height
      */
-    printImage(pathToImage, x, y, width, height) {
+    printImage(image, x, y, width, height) {
         const pointX = MillimeterValue.from(x).toPoint();
         const pointY = MillimeterValue.from(y).toPoint();
         let pointWidth = undefined;
@@ -305,17 +305,24 @@ export default class PDF {
         if (height) {
             pointHeight = MillimeterValue.from(height).toPoint();
         }
-        if (typeof pointWidth !== "undefined" && typeof pointHeight !== "undefined") {
-            this.pdfkit.image(pathToImage, pointX, pointY, { fit: [pointWidth, pointHeight], align: "center", valign: "center" });
-        }
-        else if (typeof pointWidth !== "undefined") {
-            this.pdfkit.image(pathToImage, pointX, pointY, { width: pointWidth });
-        }
-        else if (typeof pointHeight !== "undefined") {
-            this.pdfkit.image(pathToImage, pointX, pointY, { height: pointHeight });
+        let imagePathOrData = undefined;
+        if (typeof image === "string") {
+            imagePathOrData = image;
         }
         else {
-            this.pdfkit.image(pathToImage, pointX, pointY);
+            imagePathOrData = Buffer.from(image);
+        }
+        if (typeof pointWidth !== "undefined" && typeof pointHeight !== "undefined") {
+            this.pdfkit.image(imagePathOrData, pointX, pointY, { fit: [pointWidth, pointHeight], align: "center", valign: "center" });
+        }
+        else if (typeof pointWidth !== "undefined") {
+            this.pdfkit.image(imagePathOrData, pointX, pointY, { width: pointWidth });
+        }
+        else if (typeof pointHeight !== "undefined") {
+            this.pdfkit.image(imagePathOrData, pointX, pointY, { height: pointHeight });
+        }
+        else {
+            this.pdfkit.image(imagePathOrData, pointX, pointY);
         }
     }
     /**

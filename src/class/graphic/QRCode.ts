@@ -13,11 +13,11 @@ export default class QRCode {
      * 
      * @param contentOrImageData 
      */
-    public constructor(contentOrImageData: string | Buffer | ByteArray) {
+    public constructor(contentOrImageData: string | ArrayBufferLike | ByteArray) {
         this.contentOrImageData = contentOrImageData;
     }
 
-    private readonly contentOrImageData: string | Buffer | ByteArray;
+    private readonly contentOrImageData: string | ArrayBufferLike | ByteArray;
 
     /**
      * QRコードを内容の文字列に変換する。
@@ -29,8 +29,8 @@ export default class QRCode {
         if (typeof this.contentOrImageData === "string") {
             return this.contentOrImageData;
         } else {
-            let buffer: undefined | Buffer = undefined;
-            if (this.contentOrImageData instanceof Buffer) {
+            let buffer: undefined | ArrayBufferLike = undefined;
+            if (this.contentOrImageData instanceof ArrayBuffer) {
                 buffer = this.contentOrImageData;
             }
             if (this.contentOrImageData instanceof ByteArray) {

@@ -50,10 +50,10 @@ export default class ImageFile extends File {
      */
     static async from(parameter1, parameter2, parameter3, parameter4) {
         let inputBuffer;
-        if (parameter2 instanceof Buffer) {
+        if (parameter2 instanceof ArrayBuffer) {
             inputBuffer = parameter2;
         }
-        if (parameter3 instanceof Buffer) {
+        if (parameter3 instanceof ArrayBuffer) {
             inputBuffer = parameter3;
         }
         if (typeof inputBuffer === "undefined") {
