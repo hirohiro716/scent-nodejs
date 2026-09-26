@@ -25,7 +25,7 @@ export default class SingleRecordBinder extends RecordBinder {
      */
     get record() {
         if (super.records.length === 0) {
-            super.records = [this.getTable().createRecord()];
+            super.records = [this.createRecord()];
         }
         return super.records[0];
     }
@@ -42,7 +42,7 @@ export default class SingleRecordBinder extends RecordBinder {
         }
         catch (error) {
             console.log(error);
-            records.push(this.getTable().createRecord());
+            records.push(this.createRecord());
         }
         super.records = records;
     }

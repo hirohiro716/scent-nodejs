@@ -30,7 +30,7 @@ export default abstract class SingleRecordBinder<C extends Connector<any, any>> 
      */
     public get record(): RecordMap {
         if (super.records.length === 0) {
-            super.records = [this.getTable().createRecord()];
+            super.records = [this.createRecord()];
         }
         return super.records[0];
     }
@@ -48,7 +48,7 @@ export default abstract class SingleRecordBinder<C extends Connector<any, any>> 
             records.push(await this.createDefaultRecord());
         } catch (error: any) {
             console.log(error);
-            records.push(this.getTable().createRecord());
+            records.push(this.createRecord());
         }
         super.records = records;
     }

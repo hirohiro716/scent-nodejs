@@ -53,6 +53,15 @@ export default abstract class RecordBinder<C extends Connector<any, any>> {
     }
 
     /**
+     * レコードのインスタンスを作成する。
+     * 
+     * @returns
+     */
+    public createRecord(): RecordMap {
+        return this.getTable().createRecord();
+    }
+
+    /**
      * 初期値が入力されたレコードを作成する。
      * 
      * @returns
@@ -212,8 +221,10 @@ export default abstract class RecordBinder<C extends Connector<any, any>> {
         if (this.whereSet === null) {
             sql.append(orderBy);
             sql.append(";");
-            for (const record of await this.connector.fetchRecords(sql.toString())) {
-                records.push(this.getTable().createRecord(record));
+            for (const recordObject of await this.connector.fetchRecords(sql.toString())) {
+                const record = this.createRecord();
+                record.merge(recordObject);
+                records.push(record);
             }
         } else {
             sql.append(" WHERE ");
@@ -221,8 +232,10 @@ export default abstract class RecordBinder<C extends Connector<any, any>> {
             sql.append(" ");
             sql.append(orderBy);
             sql.append(";");
-            for (const record of await this.connector.fetchRecords(sql.toString(), this.whereSet.buildParameters())) {
-                records.push(this.getTable().createRecord(record));
+            for (const recordObject of await this.connector.fetchRecords(sql.toString(), this.whereSet.buildParameters())) {
+                const record = this.createRecord();
+                record.merge(recordObject);
+                records.push(record);
             }
         }
         return records;

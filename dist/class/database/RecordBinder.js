@@ -43,6 +43,14 @@ export default class RecordBinder {
         return Object.values(this.getTable().columns);
     }
     /**
+     * レコードのインスタンスを作成する。
+     *
+     * @returns
+     */
+    createRecord() {
+        return this.getTable().createRecord();
+    }
+    /**
      * バインドするレコードを特定するための検索条件。
      */
     get whereSet() {
@@ -153,8 +161,10 @@ export default class RecordBinder {
         if (this.whereSet === null) {
             sql.append(orderBy);
             sql.append(";");
-            for (const record of await this.connector.fetchRecords(sql.toString())) {
-                records.push(this.getTable().createRecord(record));
+            for (const recordObject of await this.connector.fetchRecords(sql.toString())) {
+                const record = this.createRecord();
+                record.merge(recordObject);
+                records.push(record);
             }
         }
         else {
@@ -163,8 +173,10 @@ export default class RecordBinder {
             sql.append(" ");
             sql.append(orderBy);
             sql.append(";");
-            for (const record of await this.connector.fetchRecords(sql.toString(), this.whereSet.buildParameters())) {
-                records.push(this.getTable().createRecord(record));
+            for (const recordObject of await this.connector.fetchRecords(sql.toString(), this.whereSet.buildParameters())) {
+                const record = this.createRecord();
+                record.merge(recordObject);
+                records.push(record);
             }
         }
         return records;

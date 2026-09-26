@@ -31,6 +31,12 @@ export default abstract class RecordBinder<C extends Connector<any, any>> {
      */
     getColumns(): Column[];
     /**
+     * レコードのインスタンスを作成する。
+     *
+     * @returns
+     */
+    createRecord(): RecordMap;
+    /**
      * 初期値が入力されたレコードを作成する。
      *
      * @returns
