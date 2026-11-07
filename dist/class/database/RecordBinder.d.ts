@@ -31,6 +31,12 @@ export default abstract class RecordBinder<C extends Connector<any, any>> {
      */
     getColumns(): Column[];
     /**
+     * 公開しないカラムを取得する。
+     *
+     * @returns
+     */
+    abstract getUnpublishedColumns(): Column[];
+    /**
      * レコードのインスタンスを作成する。
      *
      * @returns

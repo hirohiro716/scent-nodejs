@@ -59,6 +59,9 @@ export default class SingleRecordBinder extends RecordBinder {
             throw new DatabaseError("Record for inserting is missing.");
         }
         await this.connector.insert(this.record, this.getTable());
+        for (const column of this.getUnpublishedColumns()) {
+            this.record.delete(column);
+        }
     }
     getOrderByColumnsForEdit() {
         return [];
@@ -97,6 +100,9 @@ export default class SingleRecordBinder extends RecordBinder {
         }
         await this.detectConflict();
         await this.connector.update(this.record, this.getTable(), this.whereSet);
+        for (const column of this.getUnpublishedColumns()) {
+            this.record.delete(column);
+        }
     }
     /**
      * 設定されている検索条件に該当するレコードをデータベースから物理削除する。
@@ -117,5 +123,8 @@ export default class SingleRecordBinder extends RecordBinder {
         sql.append(this.whereSet.buildPlaceholderClause());
         sql.append(";");
         this.connector.execute(sql.toString(), this.whereSet.buildParameters());
+        for (const column of this.getUnpublishedColumns()) {
+            this.record.delete(column);
+        }
     }
 }

@@ -53,6 +53,13 @@ export default abstract class RecordBinder<C extends Connector<any, any>> {
     }
 
     /**
+     * 公開しないカラムを取得する。
+     * 
+     * @returns
+     */
+    public abstract getUnpublishedColumns(): Column[];
+
+    /**
      * レコードのインスタンスを作成する。
      * 
      * @returns
@@ -366,6 +373,9 @@ export default abstract class RecordBinder<C extends Connector<any, any>> {
         }
         for (const record of this.editingRecords) {
             await this._connector.insert(record, this.getTable());
+            for (const column of this.getUnpublishedColumns()) {
+                record.delete(column);
+            }
         }
     }
 
@@ -414,7 +424,11 @@ export default abstract class RecordBinder<C extends Connector<any, any>> {
                 }
             }
             if (errors.size > 0) {
-                throw new RecordMapValidationError(record, errors);
+                const causeRecord = record.clone();
+                for (const column of this.getUnpublishedColumns()) {
+                    causeRecord.delete(column);
+                }
+                throw new RecordMapValidationError(causeRecord, errors);
             }
         }
     }

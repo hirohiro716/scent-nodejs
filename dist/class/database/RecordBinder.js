@@ -296,6 +296,9 @@ export default class RecordBinder {
         }
         for (const record of this.editingRecords) {
             await this._connector.insert(record, this.getTable());
+            for (const column of this.getUnpublishedColumns()) {
+                record.delete(column);
+            }
         }
     }
     /**
@@ -336,7 +339,11 @@ export default class RecordBinder {
                 }
             }
             if (errors.size > 0) {
-                throw new RecordMapValidationError(record, errors);
+                const causeRecord = record.clone();
+                for (const column of this.getUnpublishedColumns()) {
+                    causeRecord.delete(column);
+                }
+                throw new RecordMapValidationError(causeRecord, errors);
             }
         }
     }

@@ -66,6 +66,9 @@ export default abstract class SingleRecordBinder<C extends Connector<any, any>> 
             throw new DatabaseError("Record for inserting is missing.");
         }
         await this.connector.insert(this.record, this.getTable());
+        for (const column of this.getUnpublishedColumns()) {
+            this.record.delete(column);
+        }
     }
 
     protected getOrderByColumnsForEdit(): string[] {
@@ -115,6 +118,9 @@ export default abstract class SingleRecordBinder<C extends Connector<any, any>> 
         }
         await this.detectConflict();
         await this.connector.update(this.record, this.getTable(), this.whereSet);
+        for (const column of this.getUnpublishedColumns()) {
+            this.record.delete(column);
+        }
     }
 
     /**
@@ -136,6 +142,9 @@ export default abstract class SingleRecordBinder<C extends Connector<any, any>> 
         sql.append(this.whereSet.buildPlaceholderClause());
         sql.append(";");
         this.connector.execute(sql.toString(), this.whereSet.buildParameters());
+        for (const column of this.getUnpublishedColumns()) {
+            this.record.delete(column);
+        }
     }
 
     /**
