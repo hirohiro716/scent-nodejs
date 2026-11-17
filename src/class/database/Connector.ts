@@ -73,6 +73,7 @@ export default abstract class Connector<D, C> {
      */
     public async connect(): Promise<void> {
         await this.releaseDelegateToPool();
+        this._delegate = null;
         this._delegate = await this.borrowDelegateFromPool();
     }
 
@@ -105,6 +106,8 @@ export default abstract class Connector<D, C> {
                 throw error;
             }
             throw this.createErrorFromInnerError(error);
+        } finally {
+            this._delegate = null;
         }
     }
 
@@ -440,10 +443,10 @@ export default abstract class Connector<D, C> {
                     wrapper = "'";
                 }
                 result.append(wrapper);
-                result.append(key);
+                result.append(StringObject.from(key).replace("'", "''"));
                 result.append(wrapper);
                 result.append(" THEN '");
-                result.append(map.get(key));
+                result.append(StringObject.from(map.get(key)).replace("'", "''"));
                 result.append("' ");
             }
             result.append("END");

@@ -33,29 +33,17 @@ export default abstract class FilesystemItem {
      */
     getAbsolutePath(): string;
     /**
-     * ファイルシステムに指定されたパスのファイルが存在する場合はtrueを返す。
-     *
-     * @param filePath
-     */
-    static hasFile(filePath: string): Promise<boolean>;
-    /**
-     * ファイルシステムアイテムがファイルの場合にtrueを返す。
+     * ファイルシステムアイテムにファイルとしてアクセス可能な場合にtrueを返す。
      *
      * @returns
      */
-    isFile(): Promise<boolean>;
+    isFileAccessible(): Promise<boolean>;
     /**
-     * ファイルシステムに指定されたパスのディレクトリが存在する場合はtrueを返す。
-     *
-     * @param directoryPath
-     */
-    static hasDirectory(directoryPath: string): Promise<boolean>;
-    /**
-     * ファイルシステムアイテムがディレクトリの場合にtrueを返す。
+     * ファイルシステムアイテムにディレクトリとしてアクセス可能な場合にtrueを返す。
      *
      * @returns
      */
-    isDirectory(): Promise<boolean>;
+    isDirectoryAccessible(): Promise<boolean>;
     /**
      * ファイルシステムアイテムにアクセスする。
      */

@@ -1,6 +1,9 @@
+import { Readable } from "stream";
 import File from "./File.js";
 import { ByteArray } from "scent-typescript";
 import Directory from "./Directory.js";
+import sharp from "sharp";
+import { pipeline } from "stream/promises";
 /**
  * 画像ファイルのクラス。
  */
@@ -13,11 +16,10 @@ export default class ImageFile extends File {
      * @returns
      */
     static async changeBuffer(inputBuffer, changeType) {
-        const sharp = require("sharp");
         let sharpInstance = sharp(inputBuffer);
         const meta = await sharpInstance.metadata();
         if (changeType.format) {
-            sharpInstance = sharpInstance.toFormat(changeType.format, { quality: changeType.qualityPercentage });
+            sharpInstance = sharpInstance.toFormat(changeType.format === "jpg" ? "jpeg" : changeType.format, { quality: changeType.qualityPercentage });
         }
         else if (meta.format) {
             sharpInstance = sharpInstance.toFormat(meta.format, { quality: changeType.qualityPercentage });
@@ -35,7 +37,7 @@ export default class ImageFile extends File {
      */
     async change(changeType) {
         const byteArray = await this.createByteArray();
-        return await ImageFile.changeBuffer(byteArray.toBuffer(), changeType);
+        return await ImageFile.changeBuffer(Buffer.from(byteArray.uint8Array), changeType);
     }
     /**
      * この画像の幅と高さを取得する。
@@ -49,42 +51,27 @@ export default class ImageFile extends File {
      * @deprecated
      */
     static async from(parameter1, parameter2, parameter3, parameter4) {
+        let file;
         let inputBuffer;
-        if (parameter2 instanceof ArrayBuffer) {
-            inputBuffer = parameter2;
-        }
-        if (parameter3 instanceof ArrayBuffer) {
+        let changeType;
+        if (parameter2 instanceof Directory) {
+            file = new ImageFile(parameter1, parameter2);
             inputBuffer = parameter3;
-        }
-        if (typeof inputBuffer === "undefined") {
-            if (parameter2 instanceof Directory) {
-                return new ImageFile(parameter1, parameter2);
-            }
-            else {
-                return new ImageFile(parameter1);
-            }
+            changeType = parameter4;
         }
         else {
-            let imageFile;
-            if (parameter2 instanceof Directory) {
-                imageFile = new ImageFile(parameter1, parameter2);
-            }
-            else {
-                imageFile = new ImageFile(parameter1);
-            }
-            let changeType;
-            if (parameter3 instanceof Object) {
-                changeType = parameter3;
-            }
-            if (parameter4 instanceof Object) {
-                changeType = parameter4;
-            }
-            if (changeType) {
-                const readable = await ImageFile.changeBuffer(inputBuffer, changeType);
-                readable.pipe(imageFile.createWriteStream());
-            }
-            return imageFile;
+            file = new ImageFile(parameter1);
+            inputBuffer = parameter2;
+            changeType = parameter3;
         }
+        if (typeof changeType === "undefined") {
+            await pipeline(Readable.from(inputBuffer), file.createWriteStream());
+        }
+        else {
+            const readable = await ImageFile.changeBuffer(inputBuffer, changeType);
+            await pipeline(readable, file.createWriteStream());
+        }
+        return file;
     }
     /**
      * 指定された画像の幅と高さを取得する。
@@ -94,10 +81,9 @@ export default class ImageFile extends File {
      * @throws Error 画像の読み取りに失敗した場合。
      */
     static async getImageSizeFrom(imagePathOrBuffer) {
-        const sharp = require("sharp");
         let sharpInstance;
         if (imagePathOrBuffer instanceof ByteArray) {
-            sharpInstance = sharp(imagePathOrBuffer.toBuffer());
+            sharpInstance = sharp(imagePathOrBuffer.uint8Array);
         }
         else {
             sharpInstance = sharp(imagePathOrBuffer);

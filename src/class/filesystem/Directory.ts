@@ -40,17 +40,30 @@ export default class Directory extends FilesystemItem {
     }
 
     /**
+     * ファイルシステムの指定されたパスのディレクトリにアクセスする。
+     * 
+     * @param directoryPath 
+     */
+    public static async accessDirectory(directoryPath: string): Promise<Directory> {
+        const stats = await fs.promises.stat(directoryPath);
+        if (stats.isDirectory()) {
+            return new Directory(directoryPath);
+        }
+        throw Error("The specified path is a file.");
+    }
+
+    /**
      * ディレクトリを新規作成する。
      */
     public async create(): Promise<void> {
-        await fs.promises.mkdir(this.path, { recursive: true });
+        await fs.promises.mkdir(this.path, {recursive: true});
     }
 
     /**
      * ディレクトリを削除する。内包するアイテムも再帰的に削除される。
      */
     public async delete(): Promise<void> {
-        await fs.promises.rm(this.path, { recursive: true, force: true });
+        await fs.promises.rm(this.path, {recursive: true, force: true});
     }
 
     /**
@@ -70,7 +83,7 @@ export default class Directory extends FilesystemItem {
      * @returns 
      */
     public async copy(destination: string): Promise<Directory> {
-        await fs.promises.cp(this.path, destination, { force: true, recursive: true });
+        await fs.promises.cp(this.path, destination, {force: true, recursive: true});
         return new Directory(destination);
     }
 
@@ -109,16 +122,21 @@ export default class Directory extends FilesystemItem {
         const filesystemItems: FilesystemItem[] = [];
         const filesystemItemPaths = await this.getItemPaths();
         for (const filesystemItemPath of filesystemItemPaths) {
-            if (await FilesystemItem.hasDirectory(filesystemItemPath)) {
-                const itemDirectory = new Directory(filesystemItemPath);
+            try {
+                const itemDirectory = await Directory.accessDirectory(filesystemItemPath);
                 if (typeof regexToFilterDirectoryName === "undefined" || new Regex(regexToFilterDirectoryName).test(itemDirectory.getName())) {
                     filesystemItems.push(itemDirectory);
                 }
-            } else {
-                const itemFile = new File(filesystemItemPath);
+                continue;
+            } catch (error: any) {
+            }
+            try {
+                const itemFile = await File.accessFile(filesystemItemPath);
                 if (typeof regexToFilterFileName === "undefined" || Regex.from(regexToFilterFileName).test(itemFile.getName())) {
                     filesystemItems.push(itemFile);
                 }
+                continue;
+            } catch (error: any) {
             }
         }
         return filesystemItems;
@@ -136,17 +154,22 @@ export default class Directory extends FilesystemItem {
         const filesystemItems: FilesystemItem[] = [];
         const filesystemItemPaths = await directory.getItemPaths();
         for (const filesystemItemPath of filesystemItemPaths) {
-            if (await FilesystemItem.hasDirectory(filesystemItemPath)) {
-                const itemDirectory = new Directory(filesystemItemPath);
+            try {
+                const itemDirectory = await Directory.accessDirectory(filesystemItemPath);
                 if (typeof regexToFilterDirectoryName === "undefined" || new Regex(regexToFilterDirectoryName).test(itemDirectory.getName())) {
                     filesystemItems.push(itemDirectory);
                     filesystemItems.push(...await Directory.searchItemsFrom(itemDirectory, regexToFilterDirectoryName, regexToFilterFileName));
                 }
-            } else {
-                const itemFile = new File(filesystemItemPath);
+                continue;
+            } catch (error: any) {
+            }
+            try {
+                const itemFile = await File.accessFile(filesystemItemPath);
                 if (typeof regexToFilterFileName === "undefined" || Regex.from(regexToFilterFileName).test(itemFile.getName())) {
                     filesystemItems.push(itemFile);
                 }
+                continue;
+            } catch (error: any) {
             }
         }
         return filesystemItems;

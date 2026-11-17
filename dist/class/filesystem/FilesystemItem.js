@@ -44,38 +44,32 @@ export default class FilesystemItem {
         return path.resolve(this._path);
     }
     /**
-     * ファイルシステムに指定されたパスのファイルが存在する場合はtrueを返す。
-     *
-     * @param filePath
-     */
-    static async hasFile(filePath) {
-        const stats = await fs.promises.stat(filePath);
-        return stats.isFile();
-    }
-    /**
-     * ファイルシステムアイテムがファイルの場合にtrueを返す。
+     * ファイルシステムアイテムにファイルとしてアクセス可能な場合にtrueを返す。
      *
      * @returns
      */
-    isFile() {
-        return FilesystemItem.hasFile(this._path);
+    async isFileAccessible() {
+        try {
+            const stats = await fs.promises.stat(this._path);
+            return stats.isFile();
+        }
+        catch (error) {
+            return false;
+        }
     }
     /**
-     * ファイルシステムに指定されたパスのディレクトリが存在する場合はtrueを返す。
-     *
-     * @param directoryPath
-     */
-    static async hasDirectory(directoryPath) {
-        const stats = await fs.promises.stat(directoryPath);
-        return stats.isDirectory();
-    }
-    /**
-     * ファイルシステムアイテムがディレクトリの場合にtrueを返す。
+     * ファイルシステムアイテムにディレクトリとしてアクセス可能な場合にtrueを返す。
      *
      * @returns
      */
-    isDirectory() {
-        return FilesystemItem.hasDirectory(this._path);
+    async isDirectoryAccessible() {
+        try {
+            const stats = await fs.promises.stat(this._path);
+            return stats.isDirectory();
+        }
+        catch (error) {
+            return false;
+        }
     }
     /**
      * ファイルシステムアイテムにアクセスする。

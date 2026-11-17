@@ -24,6 +24,18 @@ export default class Directory extends FilesystemItem {
         }
     }
     /**
+     * ファイルシステムの指定されたパスのディレクトリにアクセスする。
+     *
+     * @param directoryPath
+     */
+    static async accessDirectory(directoryPath) {
+        const stats = await fs.promises.stat(directoryPath);
+        if (stats.isDirectory()) {
+            return new Directory(directoryPath);
+        }
+        throw Error("The specified path is a file.");
+    }
+    /**
      * ディレクトリを新規作成する。
      */
     async create() {
@@ -87,17 +99,23 @@ export default class Directory extends FilesystemItem {
         const filesystemItems = [];
         const filesystemItemPaths = await this.getItemPaths();
         for (const filesystemItemPath of filesystemItemPaths) {
-            if (await FilesystemItem.hasDirectory(filesystemItemPath)) {
-                const itemDirectory = new Directory(filesystemItemPath);
+            try {
+                const itemDirectory = await Directory.accessDirectory(filesystemItemPath);
                 if (typeof regexToFilterDirectoryName === "undefined" || new Regex(regexToFilterDirectoryName).test(itemDirectory.getName())) {
                     filesystemItems.push(itemDirectory);
                 }
+                continue;
             }
-            else {
-                const itemFile = new File(filesystemItemPath);
+            catch (error) {
+            }
+            try {
+                const itemFile = await File.accessFile(filesystemItemPath);
                 if (typeof regexToFilterFileName === "undefined" || Regex.from(regexToFilterFileName).test(itemFile.getName())) {
                     filesystemItems.push(itemFile);
                 }
+                continue;
+            }
+            catch (error) {
             }
         }
         return filesystemItems;
@@ -114,18 +132,24 @@ export default class Directory extends FilesystemItem {
         const filesystemItems = [];
         const filesystemItemPaths = await directory.getItemPaths();
         for (const filesystemItemPath of filesystemItemPaths) {
-            if (await FilesystemItem.hasDirectory(filesystemItemPath)) {
-                const itemDirectory = new Directory(filesystemItemPath);
+            try {
+                const itemDirectory = await Directory.accessDirectory(filesystemItemPath);
                 if (typeof regexToFilterDirectoryName === "undefined" || new Regex(regexToFilterDirectoryName).test(itemDirectory.getName())) {
                     filesystemItems.push(itemDirectory);
                     filesystemItems.push(...await Directory.searchItemsFrom(itemDirectory, regexToFilterDirectoryName, regexToFilterFileName));
                 }
+                continue;
             }
-            else {
-                const itemFile = new File(filesystemItemPath);
+            catch (error) {
+            }
+            try {
+                const itemFile = await File.accessFile(filesystemItemPath);
                 if (typeof regexToFilterFileName === "undefined" || Regex.from(regexToFilterFileName).test(itemFile.getName())) {
                     filesystemItems.push(itemFile);
                 }
+                continue;
+            }
+            catch (error) {
             }
         }
         return filesystemItems;

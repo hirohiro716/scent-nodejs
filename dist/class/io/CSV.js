@@ -24,7 +24,7 @@ class CSV {
      * CSVファイルの区切り文字。
      */
     get delimiter() {
-        return this.delimiter;
+        return this._delimiter;
     }
     set delimiter(delimiter) {
         this._delimiter = delimiter;
@@ -36,7 +36,7 @@ class CSV {
         return this._lineSeparator;
     }
     set lineSeparator(lineSeparator) {
-        this.lineSeparator = lineSeparator;
+        this._lineSeparator = lineSeparator;
     }
     /**
      * CSVファイルの行情報。
@@ -179,6 +179,10 @@ class CSV {
                 }
             };
             readable.on("end", () => {
+                for (const one of decoder.end()) {
+                    parse(one);
+                }
+                parse("\n");
                 resolve();
             });
             readable.on("error", (error) => {

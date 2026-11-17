@@ -45,9 +45,9 @@ export default abstract class Session {
      * このメソッドはloadメソッド実行時に自動的に呼び出される。
      *
      * @param id
-     * @returns
+     * @returns 該当するデータが存在しない場合はundefinedを返す。
      */
-    protected abstract loadFromStorage(id: string): Promise<string>;
+    protected abstract loadFromStorage(id: string): Promise<string | undefined>;
     /**
      * 期限が切れたセッション情報を記憶媒体から削除する。このメソッドはloadメソッド実行時に自動的に呼び出される。
      */

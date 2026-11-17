@@ -36,7 +36,7 @@ export default class PDF {
          * 最後に自動調整されたフォントサイズ。
          */
         this.lastAdjustedFontSize = undefined;
-        this._lineWidth = 1;
+        this._lineWidth = MillimeterValue.fromPoint(1).value;
         if (typeof paperSize === "string") {
             this.pdfkit = new PDFKit({ font: fontPath, size: paperSize, layout: paperOrientation });
         }
@@ -48,7 +48,7 @@ export default class PDF {
         this.pdfkit.strokeColor(this._color);
         this._fontPath = fontPath;
         this.pdfkit.font(this._fontPath, this._fontSize);
-        this.pdfkit.lineWidth(this._lineWidth);
+        this.pdfkit.lineWidth(MillimeterValue.from(this._lineWidth).toPoint());
     }
     /**
      * 描画色。

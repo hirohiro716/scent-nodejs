@@ -187,18 +187,17 @@ export default abstract class RecordBinder<C extends Connector<any, any>> {
     protected isModified(record: RecordMap, excludeColumns: Column[]): boolean {
         const id = StringObject.from(this.getIdentifier(record)).toString();
         const preEditRecord = this.idAndPreEditRecord.get(id);
-        if (preEditRecord) {
-            const currentRecordText = new StringObject();
-            const preEditRecordText = new StringObject();
-            for (const column of this.getColumns()) {
-                if (excludeColumns.includes(column) === false) {
-                    currentRecordText.append(record.get(column));
-                    preEditRecordText.append(preEditRecord.get(column));
+        if (typeof preEditRecord === "undefined") {
+            return true;
+        }
+        for (const column of this.getColumns()) {
+            if (excludeColumns.includes(column) === false) {
+                if (StringObject.from(record.get(column)).equals(StringObject.from(preEditRecord.get(column))) === false) {
+                    return true;
                 }
             }
-            return currentRecordText.equals(preEditRecordText) === false;
         }
-        return true;
+        return false;
     }
 
     /**

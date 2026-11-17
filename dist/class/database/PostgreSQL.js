@@ -72,6 +72,9 @@ export var PostgreSQL;
         constructor(connectionParameters) {
             super(connectionParameters);
             this._errorOccurred = false;
+            this.errorListener = () => {
+                this._errorOccurred = true;
+            };
             this._isTransactionBegun = false;
         }
         get errorOccurred() {
@@ -84,18 +87,15 @@ export var PostgreSQL;
                 Pool.put(this.connectionParameters, pool);
             }
             const delegate = await pool.borrowConnectorDelegate();
-            if (Connector.errorMonitoringDelegates.includes(delegate) === false) {
-                delegate.addListener("error", () => {
-                    this._errorOccurred = true;
-                });
-                Connector.errorMonitoringDelegates.push(delegate);
-            }
+            this._errorOccurred = false;
+            delegate.on("error", this.errorListener);
             return delegate;
         }
         async releaseDelegateToPool() {
             const pool = Pool.get(this.connectionParameters);
             if (typeof pool !== "undefined" && this.existsDelegate()) {
-                pool.releaseConnectorDelegate(this.delegate, this._errorOccurred);
+                this.delegate.off("error", this.errorListener);
+                await pool.releaseConnectorDelegate(this.delegate, this._errorOccurred);
             }
         }
         async setStatementTimeoutToDelegate(milliseconds) {
@@ -273,7 +273,6 @@ export var PostgreSQL;
             return new DatabaseError(error.message, error.code);
         }
     }
-    Connector.errorMonitoringDelegates = [];
     PostgreSQL.Connector = Connector;
     /**
      * データベースのレコードとオブジェクトをバインドするための抽象クラス。

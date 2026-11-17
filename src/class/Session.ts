@@ -59,6 +59,7 @@ export default abstract class Session {
         }
         if (typeof this._data !== "undefined") {
             await this.saveToStorage(newID, JSON.stringify(Object.fromEntries(this._data)));
+            this._id = newID;
         }
         return newID;
     }
@@ -75,9 +76,9 @@ export default abstract class Session {
      * このメソッドはloadメソッド実行時に自動的に呼び出される。
      * 
      * @param id 
-     * @returns
+     * @returns 該当するデータが存在しない場合はundefinedを返す。
      */
-    protected abstract loadFromStorage(id: string): Promise<string>;
+    protected abstract loadFromStorage(id: string): Promise<string | undefined>;
 
     /**
      * 期限が切れたセッション情報を記憶媒体から削除する。このメソッドはloadメソッド実行時に自動的に呼び出される。
@@ -93,8 +94,10 @@ export default abstract class Session {
         await this.removeExpiredSessions();
         const json = await this.loadFromStorage(id);
         try {
-            this._data = new Map(Object.entries(JSON.parse(json)));
-            this._id = id;
+            if (typeof json !== "undefined") {
+                this._data = new Map(Object.entries(JSON.parse(json)));
+                this._id = id;
+            }
         } catch (error :any) {
         }
     }
@@ -174,8 +177,10 @@ export default abstract class Session {
                 for (const whereSetObject of Object.keys(expirationDates[tableName])) {
                     const limit = StringObject.from(expirationDates[tableName][whereSetObject]).toDatetime();
                     if (limit === null || limit.getAllMilliseconds() < Datetime.from().getAllMilliseconds()) {
-                        delete expirationDates[tableName][whereSetObject]
-                        delete preEditRecords[tableName][whereSetObject]
+                        delete expirationDates[tableName][whereSetObject];
+                        if (preEditRecords[tableName]) {
+                            delete preEditRecords[tableName][whereSetObject];
+                        }
                     }
                 }
             }

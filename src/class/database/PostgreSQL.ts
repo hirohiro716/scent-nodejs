@@ -92,7 +92,9 @@ export namespace PostgreSQL {
             return this._errorOccurred;
         }
 
-        private static readonly errorMonitoringDelegates: pg.PoolClient[] = [];
+        private errorListener = () => {
+            this._errorOccurred = true;
+        }
 
         protected async borrowDelegateFromPool(): Promise<pg.PoolClient> {
             let pool = Pool.get(this.connectionParameters);
@@ -101,19 +103,16 @@ export namespace PostgreSQL {
                 Pool.put(this.connectionParameters, pool);
             }
             const delegate: pg.PoolClient = await pool.borrowConnectorDelegate();
-            if (Connector.errorMonitoringDelegates.includes(delegate) === false) {
-                delegate.addListener("error", () => {
-                    this._errorOccurred = true;
-                });
-                Connector.errorMonitoringDelegates.push(delegate);
-            }
+            this._errorOccurred = false;
+            delegate.on("error", this.errorListener);
             return delegate;
         }
 
         protected async releaseDelegateToPool(): Promise<void> {
             const pool = Pool.get(this.connectionParameters);
             if (typeof pool !== "undefined" && this.existsDelegate()) {
-                pool.releaseConnectorDelegate(this.delegate, this._errorOccurred);
+                this.delegate.off("error", this.errorListener);
+                await pool.releaseConnectorDelegate(this.delegate, this._errorOccurred);
             }
         }
 

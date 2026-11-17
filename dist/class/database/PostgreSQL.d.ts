@@ -44,7 +44,7 @@ export declare namespace PostgreSQL {
         constructor(connectionParameters: ConnectionParameters);
         private _errorOccurred;
         get errorOccurred(): boolean;
-        private static readonly errorMonitoringDelegates;
+        private errorListener;
         protected borrowDelegateFromPool(): Promise<pg.PoolClient>;
         protected releaseDelegateToPool(): Promise<void>;
         protected setStatementTimeoutToDelegate(milliseconds: number): Promise<void>;

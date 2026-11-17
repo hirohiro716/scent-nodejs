@@ -24,6 +24,19 @@ export default class File extends FilesystemItem {
         }
     }
     /**
+     * ファイルシステムの指定されたパスのファイルにアクセスする。
+     *
+     * @param filePath
+     * @returns
+     */
+    static async accessFile(filePath) {
+        const stats = await fs.promises.stat(filePath);
+        if (stats.isFile()) {
+            return new File(filePath);
+        }
+        throw Error("The specified path is a directory.");
+    }
+    /**
      * ファイルを新規作成する。
      */
     async create() {
@@ -97,7 +110,7 @@ export default class File extends FilesystemItem {
      * @returns
      */
     createReadStream(highWaterMark, bufferEncoding) {
-        const options = { bufferEncoding: bufferEncoding, highWaterMark: highWaterMark };
+        const options = { encoding: bufferEncoding, highWaterMark: highWaterMark };
         return fs.createReadStream(this.path, options);
     }
     /**
@@ -108,7 +121,7 @@ export default class File extends FilesystemItem {
      * @returns
      */
     createWriteStream(highWaterMark, bufferEncoding) {
-        const options = { bufferEncoding: bufferEncoding, highWaterMark: highWaterMark };
+        const options = { encoding: bufferEncoding, highWaterMark: highWaterMark };
         return fs.createWriteStream(this.path, options);
     }
     /**

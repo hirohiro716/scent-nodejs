@@ -16,6 +16,12 @@ export default class Directory extends FilesystemItem {
      */
     constructor(directoryName: string, parentDirectory: Directory);
     /**
+     * ファイルシステムの指定されたパスのディレクトリにアクセスする。
+     *
+     * @param directoryPath
+     */
+    static accessDirectory(directoryPath: string): Promise<Directory>;
+    /**
      * ディレクトリを新規作成する。
      */
     create(): Promise<void>;

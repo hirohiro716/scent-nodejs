@@ -122,7 +122,7 @@ export default class SingleRecordBinder extends RecordBinder {
         sql.append(" WHERE ");
         sql.append(this.whereSet.buildPlaceholderClause());
         sql.append(";");
-        this.connector.execute(sql.toString(), this.whereSet.buildParameters());
+        await this.connector.execute(sql.toString(), this.whereSet.buildParameters());
         for (const column of this.getUnpublishedColumns()) {
             this.record.delete(column);
         }

@@ -41,6 +41,20 @@ export default class File extends FilesystemItem {
     }
 
     /**
+     * ファイルシステムの指定されたパスのファイルにアクセスする。
+     * 
+     * @param filePath 
+     * @returns
+     */
+    public static async accessFile(filePath: string): Promise<File> {
+        const stats = await fs.promises.stat(filePath);
+        if (stats.isFile()) {
+            return new File(filePath);
+        }
+        throw Error("The specified path is a directory.");
+    }
+
+    /**
      * ファイルを新規作成する。
      */
     public async create(): Promise<void> {
@@ -51,7 +65,7 @@ export default class File extends FilesystemItem {
      * ファイルを削除する。
      */
     public async delete(): Promise<void> {
-        await fs.promises.rm(this.path, { force: true });
+        await fs.promises.rm(this.path, {force: true});
     }
 
     /**
@@ -71,7 +85,7 @@ export default class File extends FilesystemItem {
      * @returns 
      */
     public async copy(destination: string): Promise<FilesystemItem> {
-        await fs.promises.cp(this.path, destination, { force: true});
+        await fs.promises.cp(this.path, destination, {force: true});
         return new File(destination);
     }
 
@@ -122,7 +136,7 @@ export default class File extends FilesystemItem {
      * @returns 
      */
     public createReadStream(highWaterMark?: number, bufferEncoding?: BufferEncoding): Readable {
-        const options = { bufferEncoding: bufferEncoding, highWaterMark: highWaterMark };
+        const options = {encoding: bufferEncoding, highWaterMark: highWaterMark};
         return fs.createReadStream(this.path, options);
     }
 
@@ -134,7 +148,7 @@ export default class File extends FilesystemItem {
      * @returns 
      */
     public createWriteStream(highWaterMark?: number, bufferEncoding?: BufferEncoding): Writable {
-        const options = { bufferEncoding: bufferEncoding, highWaterMark: highWaterMark };
+        const options = {encoding: bufferEncoding, highWaterMark: highWaterMark};
         return fs.createWriteStream(this.path, options);
     }
 

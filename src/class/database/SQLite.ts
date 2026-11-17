@@ -41,7 +41,7 @@ export namespace SQLite {
 
         public async borrowConnectorDelegate(): Promise<sqlite3.Database> {
             let barrowedIndex = -1;
-            for (let index = 0; index < this.maximumNumberOfConnections - 1; index++) {
+            for (let index = 0; index < this.maximumNumberOfConnections; index++) {
                 if (Atomics.compareExchange(this.borrowingStatus, index, 0, 1) === 0) {
                     barrowedIndex = index;
                     break;
@@ -55,6 +55,7 @@ export namespace SQLite {
                 return new Promise<sqlite3.Database>((resolve, reject) => {
                     const database = new sqlite3.Database(this.connectionParameters.databaseFile.getAbsolutePath(), (error: any) => {
                         if (error) {
+                            Atomics.store(this.borrowingStatus, barrowedIndex, 0);
                             reject(error);
                         } else {
                             this.connectorDelegates[barrowedIndex] = database;
@@ -112,7 +113,7 @@ export namespace SQLite {
 
         public async end(): Promise<void> {
             let throwLater: Error | null = null;
-            for (let index = 0; index < this.maximumNumberOfConnections - 1; index++) {
+            for (let index = 0; index < this.maximumNumberOfConnections; index++) {
                 const connectorDelegate = this.connectorDelegates[index];
                 try {
                     await this.closeConnectorDelegate(connectorDelegate);
@@ -151,7 +152,9 @@ export namespace SQLite {
             return this._errorOccurred;
         }
 
-        private static readonly errorMonitoringDelegates: sqlite3.Database[] = [];
+        private errorListener = () => {
+            this._errorOccurred = true;
+        }
 
         protected async borrowDelegateFromPool(): Promise<sqlite3.Database> {
             let pool = Pool.get(this.connectionParameters);
@@ -160,19 +163,16 @@ export namespace SQLite {
                 Pool.put(this.connectionParameters, pool);
             }
             const delegate: sqlite3.Database = await pool.borrowConnectorDelegate();
-            if (Connector.errorMonitoringDelegates.includes(delegate) === false) {
-                delegate.addListener("error", () => {
-                    this._errorOccurred = true;
-                });
-                Connector.errorMonitoringDelegates.push(delegate);
-            }
+            this._errorOccurred = false;
+            delegate.on("error", this.errorListener);
             return delegate;
         }
 
         protected async releaseDelegateToPool(): Promise<void> {
             const pool = Pool.get(this.connectionParameters);
             if (typeof pool !== "undefined" && this.existsDelegate()) {
-                pool.releaseConnectorDelegate(this.delegate, this._errorOccurred);
+                this.delegate.off("error", this.errorListener);
+                await pool.releaseConnectorDelegate(this.delegate, this._errorOccurred);
             }
         }
 
@@ -281,7 +281,7 @@ export namespace SQLite {
                 tableName = table;
             }
             const columns: string[] = [];
-            for (const record of await this.fetchRecords("PRAGMA table_info(?)", [tableName])) {
+            for (const record of await this.fetchRecords("SELECT name FROM pragma_table_info(?)", [tableName])) {
                 columns.push(record["name"]);
             }
             return columns;

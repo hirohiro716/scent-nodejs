@@ -35,6 +35,7 @@ export default class Session {
         }
         if (typeof this._data !== "undefined") {
             await this.saveToStorage(newID, JSON.stringify(Object.fromEntries(this._data)));
+            this._id = newID;
         }
         return newID;
     }
@@ -47,8 +48,10 @@ export default class Session {
         await this.removeExpiredSessions();
         const json = await this.loadFromStorage(id);
         try {
-            this._data = new Map(Object.entries(JSON.parse(json)));
-            this._id = id;
+            if (typeof json !== "undefined") {
+                this._data = new Map(Object.entries(JSON.parse(json)));
+                this._id = id;
+            }
         }
         catch (error) {
         }
@@ -92,7 +95,9 @@ export default class Session {
                     const limit = StringObject.from(expirationDates[tableName][whereSetObject]).toDatetime();
                     if (limit === null || limit.getAllMilliseconds() < Datetime.from().getAllMilliseconds()) {
                         delete expirationDates[tableName][whereSetObject];
-                        delete preEditRecords[tableName][whereSetObject];
+                        if (preEditRecords[tableName]) {
+                            delete preEditRecords[tableName][whereSetObject];
+                        }
                     }
                 }
             }

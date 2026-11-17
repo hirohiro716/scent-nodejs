@@ -1,5 +1,7 @@
+import jsQR from "jsqr";
 import * as nodeQrcode from "qrcode";
 import { ByteArray } from "scent-typescript";
+import sharp from "sharp";
 /**
  * QRコードのクラス。
  */
@@ -23,17 +25,12 @@ export default class QRCode {
             return this.contentOrImageData;
         }
         else {
-            let buffer = undefined;
-            if (this.contentOrImageData instanceof ArrayBuffer) {
-                buffer = this.contentOrImageData;
+            let buffer = this.contentOrImageData;
+            if (buffer instanceof ByteArray) {
+                buffer = Buffer.from(buffer.uint8Array);
             }
-            if (this.contentOrImageData instanceof ByteArray) {
-                buffer = this.contentOrImageData.toBuffer();
-            }
-            const sharp = require("sharp");
-            const { data, info } = await sharp(buffer).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
-            const jsQR = require("jsqr");
-            const qrcode = jsQR(new Uint8ClampedArray(data.buffer), info.width, info.height);
+            const { data, info } = await sharp(Buffer.from(buffer), { density: 300 }).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+            const qrcode = jsQR.default(new Uint8ClampedArray(data.buffer, data.byteOffset, data.length), info.width, info.height);
             if (qrcode === null) {
                 throw new Error("Could not parse the QR code.");
             }
@@ -72,14 +69,17 @@ export default class QRCode {
                             }
                         });
                         break;
+                    default:
+                        reject(new Error("Unsupported image data."));
+                        break;
                 }
             }
             else {
-                if (this.contentOrImageData instanceof Buffer) {
-                    resolve(ByteArray.from(this.contentOrImageData));
-                }
-                else if (this.contentOrImageData instanceof ByteArray) {
+                if (this.contentOrImageData instanceof ByteArray) {
                     resolve(this.contentOrImageData);
+                }
+                else {
+                    resolve(ByteArray.from(this.contentOrImageData));
                 }
             }
         });

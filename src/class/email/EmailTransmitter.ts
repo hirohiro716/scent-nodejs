@@ -93,7 +93,7 @@ export default class EmailTransmitter {
      * ホストとの通信にTLSを使用する場合はtrue。
      */
     public get isEnableTLS(): boolean {
-        return this.isEnableTLS;
+        return this._isEnableTLS;
     }
 
     public set isEnableTLS(isEnableTLS: boolean) {
@@ -184,7 +184,7 @@ export default class EmailTransmitter {
         for (const filename of this._attachments.keys()) {
             const file = this._attachments.get(filename)!;
             try {
-                if (await file.isFile()) {
+                if (await file.isFileAccessible()) {
                     attachments.push({filename: filename, path: file.getAbsolutePath()});
                 }
             } catch (error: any) {

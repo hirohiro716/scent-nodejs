@@ -34,7 +34,7 @@ export default class PDF {
         this.pdfkit.strokeColor(this._color);
         this._fontPath = fontPath;
         this.pdfkit.font(this._fontPath, this._fontSize);
-        this.pdfkit.lineWidth(this._lineWidth);
+        this.pdfkit.lineWidth(MillimeterValue.from(this._lineWidth).toPoint());
     }
 
     public readonly pdfkit: PDFKit.PDFDocument;
@@ -171,7 +171,7 @@ export default class PDF {
         return {width: MillimeterValue.fromPoint(size.width).value, height: MillimeterValue.fromPoint(size.height).value};
     }
 
-    private _lineWidth: number = 1;
+    private _lineWidth: number = MillimeterValue.fromPoint(1).value;
 
     /**
      * 線の太さ。

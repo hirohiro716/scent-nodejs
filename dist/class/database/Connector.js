@@ -44,6 +44,7 @@ class Connector {
      */
     async connect() {
         await this.releaseDelegateToPool();
+        this._delegate = null;
         this._delegate = await this.borrowDelegateFromPool();
     }
     /**
@@ -70,6 +71,9 @@ class Connector {
                 throw error;
             }
             throw this.createErrorFromInnerError(error);
+        }
+        finally {
+            this._delegate = null;
         }
     }
     /**
@@ -290,10 +294,10 @@ class Connector {
                     wrapper = "'";
                 }
                 result.append(wrapper);
-                result.append(key);
+                result.append(StringObject.from(key).replace("'", "''"));
                 result.append(wrapper);
                 result.append(" THEN '");
-                result.append(map.get(key));
+                result.append(StringObject.from(map.get(key)).replace("'", "''"));
                 result.append("' ");
             }
             result.append("END");

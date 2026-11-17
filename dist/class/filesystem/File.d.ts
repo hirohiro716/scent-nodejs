@@ -19,6 +19,13 @@ export default class File extends FilesystemItem {
      */
     constructor(fileName: string, parentDirectory: Directory);
     /**
+     * ファイルシステムの指定されたパスのファイルにアクセスする。
+     *
+     * @param filePath
+     * @returns
+     */
+    static accessFile(filePath: string): Promise<File>;
+    /**
      * ファイルを新規作成する。
      */
     create(): Promise<void>;

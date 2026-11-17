@@ -9,7 +9,7 @@ export default class QRCode {
      *
      * @param contentOrImageData
      */
-    constructor(contentOrImageData: string | ArrayBufferLike | ByteArray);
+    constructor(contentOrImageData: string | Buffer | ByteArray);
     private readonly contentOrImageData;
     /**
      * QRコードを内容の文字列に変換する。

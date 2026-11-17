@@ -32,7 +32,7 @@ export default class CSV {
      * CSVファイルの区切り文字。
      */
     public get delimiter(): string {
-        return this.delimiter;
+        return this._delimiter;
     }
 
     public set delimiter(delimiter: string) {
@@ -49,7 +49,7 @@ export default class CSV {
     }
 
     public set lineSeparator(lineSeparator: string) {
-        this.lineSeparator = lineSeparator;
+        this._lineSeparator = lineSeparator;
     }
 
     private _rows: string[][] = [];
@@ -194,6 +194,10 @@ export default class CSV {
                 }
             }
             readable.on("end", () => {
+                for (const one of decoder.end()) {
+                    parse(one);
+                }
+                parse("\n");
                 resolve();
             });
             readable.on("error", (error) => {

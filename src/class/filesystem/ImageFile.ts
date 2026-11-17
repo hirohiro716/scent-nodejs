@@ -2,6 +2,8 @@ import { Readable } from "stream";
 import File from "./File.js";
 import { ByteArray, Dimension } from "scent-typescript";
 import Directory from "./Directory.js";
+import sharp from "sharp";
+import { pipeline } from "stream/promises";
 
 /**
  * 画像変更タイプ。
@@ -29,12 +31,11 @@ export default class ImageFile extends File {
      * @param changeType 
      * @returns 
      */
-    public static async changeBuffer(inputBuffer: ArrayBufferLike, changeType: ChangeType): Promise<Readable> {
-        const sharp = require("sharp");
+    public static async changeBuffer(inputBuffer: Buffer, changeType: ChangeType): Promise<Readable> {
         let sharpInstance = sharp(inputBuffer);
         const meta = await sharpInstance.metadata();
         if (changeType.format) {
-            sharpInstance = sharpInstance.toFormat(changeType.format, {quality: changeType.qualityPercentage});
+            sharpInstance = sharpInstance.toFormat(changeType.format === "jpg" ? "jpeg" : changeType.format, {quality: changeType.qualityPercentage});
         } else if (meta.format) {
             sharpInstance = sharpInstance.toFormat(meta.format, {quality: changeType.qualityPercentage});
         }
@@ -52,7 +53,7 @@ export default class ImageFile extends File {
      */
     public async change(changeType: ChangeType): Promise<Readable> {
         const byteArray = await this.createByteArray();
-        return await ImageFile.changeBuffer(byteArray.toBuffer(), changeType);
+        return await ImageFile.changeBuffer(Buffer.from(byteArray.uint8Array), changeType);
     }
 
     /**
@@ -72,7 +73,7 @@ export default class ImageFile extends File {
      * @param inputBuffer 
      * @param changeType 画像を変更する場合に指定する。
      */
-    public static async from(fileName: string, directory?: Directory, inputBuffer?: ArrayBufferLike, changeType?: ChangeType): Promise<ImageFile>;
+    public static async from(fileName: string, directory: Directory, inputBuffer: Buffer, changeType?: ChangeType): Promise<ImageFile>;
 
     /**
      * 指定されたパスにバッファの画像ファイルを作成する。
@@ -81,45 +82,31 @@ export default class ImageFile extends File {
      * @param inputBuffer 
      * @param changeType 画像を変更する場合に指定する。
      */
-    public static async from(fileName: string, inputBuffer?: ArrayBufferLike, changeType?: ChangeType): Promise<ImageFile>;
+    public static async from(fileName: string, inputBuffer: Buffer, changeType?: ChangeType): Promise<ImageFile>;
 
     /**
      * @deprecated
      */
-    public static async from(parameter1: string, parameter2?: Directory | ArrayBufferLike, parameter3?: ArrayBufferLike | ChangeType, parameter4?: ChangeType): Promise<ImageFile> {
-        let inputBuffer: ArrayBufferLike | undefined;
-        if (parameter2 instanceof ArrayBuffer) {
-            inputBuffer = parameter2;
-        }
-        if (parameter3 instanceof ArrayBuffer) {
-            inputBuffer = parameter3;
-        }
-        if (typeof inputBuffer === "undefined") {
-            if (parameter2 instanceof Directory) {
-                return new ImageFile(parameter1, parameter2);
-            } else {
-                return new ImageFile(parameter1);
-            }
+    public static async from(parameter1: string, parameter2: Directory | Buffer, parameter3?: Buffer | ChangeType, parameter4?: ChangeType): Promise<ImageFile> {
+        let file: ImageFile;
+        let inputBuffer: Buffer;
+        let changeType: ChangeType | undefined;
+        if (parameter2 instanceof Directory) {
+            file = new ImageFile(parameter1, parameter2);
+            inputBuffer = parameter3 as Buffer;
+            changeType = parameter4;
         } else {
-            let imageFile: ImageFile;
-            if (parameter2 instanceof Directory) {
-                imageFile = new ImageFile(parameter1, parameter2);
-            } else {
-                imageFile = new ImageFile(parameter1);
-            }
-            let changeType: ChangeType | undefined;
-            if (parameter3 instanceof Object) {
-                changeType = parameter3 as ChangeType;
-            }
-            if (parameter4 instanceof Object) {
-                changeType = parameter4;
-            }
-            if (changeType) {
-                const readable = await ImageFile.changeBuffer(inputBuffer, changeType);
-                readable.pipe(imageFile.createWriteStream());
-            }
-            return imageFile;
+            file = new ImageFile(parameter1);
+            inputBuffer = parameter2;
+            changeType = parameter3 as ChangeType;
         }
+        if (typeof changeType === "undefined") {
+            await pipeline(Readable.from(inputBuffer), file.createWriteStream());
+        } else {
+            const readable = await ImageFile.changeBuffer(inputBuffer, changeType);
+            await pipeline(readable, file.createWriteStream());
+        }
+        return file;
     }
 
     /**
@@ -130,10 +117,9 @@ export default class ImageFile extends File {
      * @throws Error 画像の読み取りに失敗した場合。
      */
     public static async getImageSizeFrom(imagePathOrBuffer: string | Buffer | ByteArray): Promise<Dimension> {
-        const sharp = require("sharp");
         let sharpInstance;
         if (imagePathOrBuffer instanceof ByteArray) {
-            sharpInstance = sharp(imagePathOrBuffer.toBuffer());
+            sharpInstance = sharp(imagePathOrBuffer.uint8Array);
         } else {
             sharpInstance = sharp(imagePathOrBuffer);
         }
